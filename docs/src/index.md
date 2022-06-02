@@ -24,14 +24,13 @@ Pkg.add("https://github.com/Chemical118/ProRF.jl")
     ```bash
     $ julia --threads auto
     ```
-    For more information, see Multi-Threading [documentaion](https://docs.julialang.org/en/v1/manual/multi-threading/).
+    For more information, read Multi-Threading [documentaion](https://docs.julialang.org/en/v1/manual/multi-threading/).
 
 !!! note
     `ProRF` recommends interactive mode like `IJulia`, however if you want to run in non-interactive mode, execute below code to see graphs.
     ```julia
     julia_isinteractive(false)
     ```
-    For more information, see [`julia_isinteractive`](@ref).
 
 ### Data preprocessing
 `ProRF` has a useful function for preprocessing data.
