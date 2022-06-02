@@ -5,7 +5,7 @@
 ## Install
 ```julia
 using Pkg
-Pkg.add("")
+Pkg.add("https://github.com/Chemical118/ProRF.jl")
 ```
 
 ## Examples
