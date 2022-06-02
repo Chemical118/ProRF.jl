@@ -1,4 +1,4 @@
-using Documenter, ProRF
+using Documenter
 
 makedocs(
     sitename = "ProRF.jl",
