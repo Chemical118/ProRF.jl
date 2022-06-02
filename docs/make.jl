@@ -3,7 +3,7 @@ using Documenter, ProRF
 makedocs(
     sitename = "ProRF.jl",
     authors = "Ryu Hyunwoo",
-    doctest = true,
+    doctest = false,
     pages = [
         "Introduction" => "index.md",
         "Library" => [
