@@ -153,7 +153,7 @@ end
 """
     view_mutation(fasta_loc::String)
 
-Analyze data from .fasta file location of AbstractRF, then draw histogram, line graph about the mutation distribution.
+Analyze data from `.fasta` file location of AbstractRF, then draw histogram, line graph about the mutation distribution.
 """
 function view_mutation(fasta_loc::String)
     _view_mutation(fasta_loc)
@@ -162,7 +162,7 @@ end
 """
     view_mutation(R::AbstractRF)
 
-Analyze data from .fasta file, then draw histogram, line graph about the mutation distribution.
+Analyze data from `.fasta` file, then draw histogram, line graph about the mutation distribution.
 """
 function view_mutation(R::AbstractRF)
     _view_mutation(R.fasta_loc)
@@ -867,7 +867,7 @@ end
     
 # Examples
 ```julia-repl
-julia> F = rf_model(R, M, X, L, show_number=15);
+julia> F = rf_importance(R, M, X, L, show_number=15);
 ```
 
 Caculate feature importance for a target model, then draw feature importance list.
