@@ -4,6 +4,7 @@ makedocs(
     sitename = "ProRF.jl",
     authors = "Ryu Hyunwoo",
     doctest = true,
+    modules = [ProRF],
     pages = [
         "Introduction" => "index.md",
         "Library" => [

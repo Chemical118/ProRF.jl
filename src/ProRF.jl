@@ -6,7 +6,7 @@ using FASTX, BioAlignments, XLSX, Phylo, AxisArrays
 
 export AbstractRF, AbstractRFI, RF, RFI
 export blosum_matrix, get_data, get_amino_loc, view_mutation, view_reg3d, view_importance, view_sequence
-export train_test_split, nrmse, install_python_dependency, load_model, save_model, julia_isinteractive
+export train_test_split, nrmse, load_model, save_model, julia_isinteractive
 export get_reg_importance, iter_get_reg_importance, parallel_predict
 export get_reg_value, get_reg_value_loc, iter_get_reg_value, rf_importance, rf_model
 export data_preprocess_fill, data_preprocess_index
@@ -336,15 +336,6 @@ function train_test_split(X::Matrix{Float64}, Y::Vector{Float64}; test_size::Flo
 end
 
 """
-Install python dependency module `numpy`, `matplotlib`, `bokeh`.
-"""
-function install_python_dependency()
-    py"_python_install"("numpy")
-    py"_python_install"("matplotlib")
-    py"_python_install"("bokeh")
-end
-
-"""
     save_model(model_loc::String, regr::RandomForestRegressor)
 
 # Examples
@@ -389,24 +380,24 @@ end
 
 """
     julia_isinteractive()
-    julia_isinteractive(x::Bool)
 
-Check [`_julia_interactive`](@ref) value or set [`_julia_interactive`](@ref) value when the `Bool` input given.
+Check [`_julia_interactive`](@ref) value.
 """
 function julia_isinteractive()
     return _julia_interactive
 end
 
+"""
+    julia_isinteractive(x::Bool)
+
+Set [`_julia_interactive`](@ref) value.
+"""
 function julia_isinteractive(x::Bool)
     global _julia_interactive = x
 end
 
 function __init__()
     py"""
-    def _python_install(package):
-        import subprocess, sys
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
     def _view_sequence(floc, seqs, ids, loc, fontsize="9pt", plot_width=800, val_mode=False, save_view=True):
         # Bokeh sequence alignment view
         # https://dmnfarrell.github.io/bioinformatics/bokeh-sequence-aligner

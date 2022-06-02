@@ -3,14 +3,24 @@
 `ProRF` provides a full process for applying the random forest model of protein sequences. Also, we support parallel computing, please turn on the julia with multiple threads.
 
 ## Install
+!!! warning
+    `ProRF` uses Python module `Bokeh`, `Matplotlib` by `PyCall` to provide UI. Please install these module or execute below code before add `ProRF`.
+
+    ```
+    pip install matplotlib
+    pip install bokeh
+    ```
+
+    For more information, see [PyCall documentaion](https://github.com/JuliaPy/PyCall.jl).
+
 ```julia
 using Pkg
 Pkg.add("https://github.com/Chemical118/ProRF.jl")
 ```
 
 ## Examples
-!!! warning
-    `ProRF` recommends interactive mode like `IJulia`, however if you want to run in non-interactive mode, run the code below to execute code.
+!!! note
+    `ProRF` recommends interactive mode like `IJulia`, however if you want to run in non-interactive mode, execute below code to see graphs.
     ```julia
     julia_isinteractive(false)
     ```
