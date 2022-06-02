@@ -21,7 +21,6 @@ view_mutation
 ```@docs
 ProRF._julia_interactive
 julia_isinteractive
-install_python_dependency
 ProRF.@seed_i
 ProRF.@seed_u64
 ProRF.@show_pyplot

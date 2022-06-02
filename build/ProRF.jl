@@ -336,15 +336,6 @@ function train_test_split(X::Matrix{Float64}, Y::Vector{Float64}; test_size::Flo
 end
 
 """
-Install python dependency module `numpy`, `matplotlib`, `bokeh`.
-"""
-function install_python_dependency()
-    py"_python_install"("numpy")
-    py"_python_install"("matplotlib")
-    py"_python_install"("bokeh")
-end
-
-"""
     save_model(model_loc::String, regr::RandomForestRegressor)
 
 # Examples
@@ -395,10 +386,6 @@ end
 
 function __init__()
     py"""
-    def _python_install(package):
-        import subprocess, sys
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
     def _view_sequence(floc, seqs, ids, loc, fontsize="9pt", plot_width=800, val_mode=False, save_view=True):
         # Bokeh sequence alignment view
         # https://dmnfarrell.github.io/bioinformatics/bokeh-sequence-aligner

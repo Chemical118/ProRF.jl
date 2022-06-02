@@ -16,6 +16,10 @@ jobs:
       - uses: julia-actions/setup-julia@v1
         with:
           version: '1.6'
+      - name: Install python dependencies
+        run: |
+        pip install matplotlib
+        pip install bokeh
       - name: Install dependencies
         run: julia --project=docs/ -e 'using Pkg; Pkg.develop(url="https://github.com/Chemical118/ProRF.jl"); Pkg.instantiate()'
       - name: Build and deploy
