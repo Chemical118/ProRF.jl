@@ -255,7 +255,7 @@ end
                   seq_width::Int=800,
                   save::Bool=false)
 
-Display `.fasta` file sequence by using `PyCall`.
+Display `.fasta` file sequence using `PyCall`.
 
 Made it by referring to [bokeh sequence aligner visualization program](https://dmnfarrell.github.io/bioinformatics/bokeh-sequence-aligner).
 
@@ -283,7 +283,7 @@ end
                   seq_width::Int=800,
                   save::Bool=false)
 
-Display `.fasta` file sequence exists at a location in the [`AbstractRF`](@ref) object by using `PyCall`.
+Display `.fasta` file sequence exists at a location in the [`AbstractRF`](@ref) object using `PyCall`.
 
 Made it by referring to [bokeh sequence aligner visualization program](https://dmnfarrell.github.io/bioinformatics/bokeh-sequence-aligner).
 
@@ -347,7 +347,7 @@ ERROR: model.jld is not .jld2 file
 
 julia> save_model("model.jld2", M);
 ```
-Save `RandomForestRegressor` model by using `JLD2`, make sure filename extension set to `.jld2`.
+Save `RandomForestRegressor` model using `JLD2`, make sure filename extension set to `.jld2`.
 """
 function save_model(model_loc::String, regr::RandomForestRegressor)
     if split(model_loc, '.')[end] != "jld2"
@@ -368,7 +368,7 @@ julia> X, Y, L = get_data(R, 9, 'E');
 julia> @printf "Total NRMSE : %.6f\\n" nrmse(M, X, Y)
 Total NRMSE : 0.136494
 ```
-Load `RandomForestRegressor` model by using `JLD2`, make sure filename extension set to `.jld2`.
+Load `RandomForestRegressor` model using `JLD2`, make sure filename extension set to `.jld2`.
 """
 function load_model(model_loc::String)
     if split(model_loc, '.')[end] != "jld2"

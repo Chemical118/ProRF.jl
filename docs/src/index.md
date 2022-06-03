@@ -51,7 +51,7 @@ view_sequence("Data/jealgpdata.fasta", save=true)
 ```
 
 ### Find best random forest arguments
-`ProRF` helps you find arguments for the random forset.
+`ProRF` helps you find arguments for the random forest.
 ```julia
 using ProRF, Printf
 
