@@ -10,7 +10,7 @@
     $ pip install matplotlib
     $ pip install bokeh
     ```
-    For more information, see `PyCall` [documentaion](https://github.com/JuliaPy/PyCall.jl).
+    For more information, see `PyCall` [main page](https://github.com/JuliaPy/PyCall.jl).
 
 ```julia
 using Pkg
@@ -29,6 +29,7 @@ Pkg.add("https://github.com/Chemical118/ProRF.jl")
 !!! note
     `ProRF` recommends interactive mode like `IJulia`, however if you want to run in non-interactive mode, execute below code to see graphs.
     ```julia
+    using ProRF
     julia_isinteractive(false)
     ```
 
