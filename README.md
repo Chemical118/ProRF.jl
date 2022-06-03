@@ -13,3 +13,9 @@ Pkg.add(url="https://github.com/Chemical118/ProRF.jl")
 [ProRF.jl Documentaion](https://chemical118.github.io/ProRF.jl/dev/)  
   
 `ProRF` is still developing! Please send to <wowo0118@korea.ac.kr> if you have any question.
+
+## Package
+This is an environment where you can run `ProRF` perfectly.
+```bash
+$ docker pull ghcr.io/chemical118/prorf:latest
+```
