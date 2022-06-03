@@ -14,7 +14,7 @@
 
 ```julia
 using Pkg
-Pkg.add("https://github.com/Chemical118/ProRF.jl")
+Pkg.add(url="https://github.com/Chemical118/ProRF.jl")
 ```
 
 ## Examples

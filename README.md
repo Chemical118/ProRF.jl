@@ -6,7 +6,7 @@ You must install python module `Bokeh`, `Matplotlib` before add `ProRF`. For mor
 
 ```julia
 using Pkg
-Pkg.add("https://github.com/Chemical118/ProRF.jl")
+Pkg.add(url="https://github.com/Chemical118/ProRF.jl")
 ```
 
 ## Documentaion
