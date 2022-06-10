@@ -10,6 +10,7 @@ export train_test_split, nrmse, load_model, save_model, julia_isinteractive
 export get_reg_importance, iter_get_reg_importance, parallel_predict
 export get_reg_value, get_reg_value_loc, iter_get_reg_value, rf_importance, rf_model
 export data_preprocess_fill, data_preprocess_index
+export @seed_i, @seed_u64
 
 """
 Check julia currently running is interactive or not.
