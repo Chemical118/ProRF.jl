@@ -8,7 +8,7 @@ export AbstractRF, AbstractRFI, RF, RFI
 export blosum_matrix, get_data, get_amino_loc, view_mutation, view_reg3d, view_importance, view_sequence
 export train_test_split, nrmse, load_model, save_model, julia_isinteractive
 export get_reg_importance, iter_get_reg_importance, parallel_predict
-export get_reg_value, get_reg_value_loc, iter_get_reg_value, rf_importance, rf_model
+export get_reg_value, get_reg_value_loc, iter_get_reg_value, rf_importance, rf_model, rf_nrmse
 export data_preprocess_fill, data_preprocess_index
 export @seed_i, @seed_u64
 
@@ -120,35 +120,8 @@ end
 
 # Normal function
 
-"""
-    blosum_matrix(num::Int)
-
-# Examples
-```julia-repl
-julia> blosum_matrix(90)['A', 'A']
-5
-
-julia> blosum_matrix(82)
-ERROR: There are no Matrix such as BLOSUM82
-```
-Return correct `BioAlignments` BLOSUM matrix.
-
-Possible matrices are BLOSUM45, BLOSUM50, BLOSUM62, BLOSUM80, BLOSUM90.
-"""
-function blosum_matrix(num::Int)
-    if num == 45
-        return BLOSUM45
-    elseif num == 50
-        return BLOSUM50
-    elseif num == 62
-        return BLOSUM62
-    elseif num == 80
-        return BLOSUM80
-    elseif num == 90
-        return BLOSUM90
-    else
-        error(@sprintf "There are no Matrix such as BLOSUM%d" num)
-    end
+function _norm_dict!(dict::Dict{Char, Float32})
+    dict['X'] = mean(values(dict))
 end
 
 """
@@ -200,31 +173,31 @@ function _view_mutation(fasta_loc::String)
 end
 
 """
-    nrmse(pre::Vector{Float64}, tru::Vector{Float64})
+    nrmse(pre::Vector{Float32}, tru::Vector{Float32})
 
 Compute normalized root mean square error with predict value and true value.
 """
-function nrmse(pre::Vector{Float64}, tru::Vector{Float64})
+function nrmse(pre::Vector{Float32}, tru::Vector{Float32})
     return L2dist(pre, tru) / (maximum(tru) - minimum(tru)) / length(tru)^0.5
 end
 
 """
-    nrmse(regr::RandomForestRegressor, X::Matrix{Float64}, tru::Vector{Float64})
+    nrmse(regr::RandomForestRegressor, X::Matrix{Float32}, tru::Vector{Float32})
 
 Compute normalized root mean square error with regression model, `X` data and true value.
 """
-function nrmse(regr::RandomForestRegressor, X::Matrix{Float64}, tru::Vector{Float64})
+function nrmse(regr::RandomForestRegressor, X::Matrix{Float32}, tru::Vector{Float32})
     return L2dist(parallel_predict(regr, X), tru) / (maximum(tru) - minimum(tru)) / length(tru)^0.5
 end
 
 """
-    parallel_predict(regr::RandomForestRegressor, X::Matrix{Float64})
+    parallel_predict(regr::RandomForestRegressor, X::Matrix{Float32})
 
 Execute `DecisionTree.predict(regr, X)` in parallel.
 """
-function parallel_predict(regr::RandomForestRegressor, X::Matrix{Float64})
-    test_vector = [Vector{Float64}(row) for row in eachrow(X)]
-    val_vector = similar(test_vector, Float64)
+function parallel_predict(regr::RandomForestRegressor, X::Matrix{Float32})
+    test_vector = [Vector{Float32}(row) for row in eachrow(X)]
+    val_vector = similar(test_vector, Float32)
 
     Threads.@threads for (ind, vec) in collect(enumerate(test_vector))
         val_vector[ind] = DecisionTree.predict(regr, vec)
@@ -233,16 +206,16 @@ function parallel_predict(regr::RandomForestRegressor, X::Matrix{Float64})
 end
 
 """
-    parallel_predict(regr::RandomForestRegressor, X::Matrix{Float64})
+    parallel_predict(regr::RandomForestRegressor, X::Matrix{Float32})
 
 Get raw sequence vector and `L` data to make `X` data and execute `DecisionTree.predict(regr, X)` in parallel.
 """
-function parallel_predict(regr::RandomForestRegressor, L::Vector{Tuple{Int, Char}}, seq_vector::Vector{String}; blosum::Int=62)
+function parallel_predict(regr::RandomForestRegressor, L::Vector{Int}, seq_vector::Vector{String}; blosum::Int=62)
     seq_vector = map(x -> x[map(y -> y[1], L)], seq_vector)
 
     blo = blosum_matrix(blosum)
-    test_vector = [[Float64(blo[tar, s]) for ((_, tar), s) in zip(L, seq)] for seq in seq_vector]
-    val_vector = similar(test_vector, Float64)
+    test_vector = [[Float32(blo[tar, s]) for ((_, tar), s) in zip(L, seq)] for seq in seq_vector]
+    val_vector = similar(test_vector, Float32)
     
     Threads.@threads for (ind, vec) in collect(enumerate(test_vector))
         val_vector[ind] = DecisionTree.predict(regr, vec)
@@ -310,7 +283,7 @@ function _view_sequence(fasta_loc::String, seq_vector::Vector{String}, id_vector
 end
 
 """
-    train_test_split(X::Matrix{Float64}, Y::Vector{Float64};
+    train_test_split(X::Matrix{Float32}, Y::Vector{Float32};
                      test_size::Float64=0.3, 
                      data_state::UInt64=@seed_u64)
 
@@ -322,12 +295,12 @@ julia> x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=0.2);
 Split `X`, `Y` data to train, test set.
 
 # Arguments
-- `X::Matrix{Float64}` : `X` data.
-- `Y::Vector{Float64}` : `Y` data.
-- `test_size::Float64` : size of test set.
+- `X::Matrix{Float32}` : `X` data.
+- `Y::Vector{Float32}` : `Y` data.
+- `test_size::Float32` : size of test set.
 - `data_state::UInt64` : seed used to split data.
 """
-function train_test_split(X::Matrix{Float64}, Y::Vector{Float64}; test_size::Float64=0.3, data_state::UInt64=@seed_u64)
+function train_test_split(X::Matrix{Float32}, Y::Vector{Float32}; test_size::Float64=0.3, data_state::UInt64=@seed_u64)
     # https://discourse.julialang.org/t/simple-tool-for-train-test-split/473/3
     n = length(Y)
     idx = shuffle(MersenneTwister(data_state), 1:n)
@@ -498,7 +471,7 @@ Analyze aligned sequence, and get index to slice aligned sequence.
 Return front, last index whose gap ratio is smaller than `target_rate` at each ends, then display partial of both ends when `val_mode` is off.
 # Arguments
 - `in_fasta_loc::String` : location of `.fasta` file
-- `target_rate::Float64` : baseline for gap ratio
+- `target_rate::Float32` : baseline for gap ratio
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 """
 function data_preprocess_index(in_fasta_loc::String; target_rate::Float64=0.3, val_mode::Bool=false)
@@ -512,7 +485,7 @@ function data_preprocess_index(in_fasta_loc::String; target_rate::Float64=0.3, v
         push!(seq_vector, FASTA.sequence(String, record))
     end
 
-    gap_fre_vector = [Float64(get(dict, '-', 0) / data_len) for dict in loc_dict_vector]
+    gap_fre_vector = [Float32(get(dict, '-', 0) / data_len) for dict in loc_dict_vector]
 
     front_ind = findfirst(x -> x ≤ target_rate, gap_fre_vector)
     last_ind = findlast(x -> x ≤ target_rate, gap_fre_vector)
@@ -612,7 +585,7 @@ function data_preprocess_fill(front_ind::Int, last_ind::Int, in_fasta_loc::Strin
     for (ind, (front_gap_ind, last_gap_ind)) in enumerate(gap_ind_vector)
         main_seq = seq_vector[ind]
         if isgap_vector[ind] == true
-            nogap_dis_vector = map(i -> Float64(dis_matrix_isgap_vector[i[1]] == true ? 1 : i[2]), enumerate(dis_matrix[:, id_vector[ind]]))
+            nogap_dis_vector = map(i -> Float32(dis_matrix_isgap_vector[i[1]] == true ? 1 : i[2]), enumerate(dis_matrix[:, id_vector[ind]]))
             min_target_ind = id_dict[dis_matrix_id_vector[argmin(nogap_dis_vector)]]
             min_target_seq = seq_vector[min_target_ind]
 
@@ -662,36 +635,42 @@ Get data from `.fasta` file by converting selected BLOSUM matrix and `.xlsx` fil
 - `ami_arr::Int` : baseline for total number of mutations in samples at one location (when value is not determined, set to 1).
 - `excel_col::Char` : column character for `.xlsx` file.
 - `norm::Bool` : execute min-max normalization.
-- `blosum::Int` : BLOSUM matrix number.
+- `convert::Dict{Char, Float32}` : [Convert dictionary](@ref) that turns amnio acid to value
 - `sheet::String` : `.xlsx` data sheet name
 - `title::Bool` : when `.xlsx` have a header row, turn on `title`.
 
 # Return
-- `X::Matrix{Float64}` : independent variables data matrix.
-- `Y::Vector{Float64}` : dependent variable data vector.
-- `L::Vector{Tuple{Int, Char}}` : location tuple vector.  
-    + `Int` : raw sequence index.
-    + `Char` : criterion amino acid for corresponding location.
+- `X::Matrix{Float32}` : independent variables data matrix.
+- `Y::Vector{Float32}` : dependent variable data vector.
+- `L::Vector{Int}` : raw sequence index vector.
 """
-function get_data(R::AbstractRF, ami_arr::Int, excel_col::Char; norm::Bool=false, blosum::Int=62, sheet::String="Sheet1", title::Bool=true)
-    _get_data(R, ami_arr, excel_col, norm, blosum, sheet, title)
+function get_data(R::AbstractRF, ami_arr::Int, excel_col::Char; norm::Bool=false, convert::Dict{Char, T}=ProRF.volume, sheet::String="Sheet1", title::Bool=true) where T <: Real
+    _get_data(R, ami_arr, excel_col, norm, Dict{Char, Float32}(convert), sheet, title)
 end
 
-function get_data(R::AbstractRF, excel_col::Char; norm::Bool=false, blosum::Int=62, sheet::String="Sheet1", title::Bool=true)
-    _get_data(R, 1, excel_col, norm, blosum, sheet, title)
+function get_data(R::AbstractRF, excel_col::Char; norm::Bool=false, convert::Dict{Char, T}=ProRF.volume, sheet::String="Sheet1", title::Bool=true) where T <: Real
+    _get_data(R, 1, excel_col, norm, Dict{Char, Float32}(convert), sheet, title)
 end
 
-function _get_data(R::AbstractRF, ami_arr::Int, excel_col::Char, norm::Bool, blonum::Int, sheet::String, title::Bool)
+function _get_data(R::AbstractRF, ami_arr::Int, excel_col::Char, norm::Bool, convert::Dict{Char, Float32}, sheet::String, title::Bool)
+    aa_set = Set(['M', 'P', 'K', 'Q', 'I', 'H', 'E', 'W', 'T', 'S', 'C', 'D', 'A', 'L', 'Y', 'V', 'R', 'G', 'N', 'F'])
+    key_set = Set(keys(convert))
+    if issubset(aa_set, key_set)
+        if 'X' ∉ key_set
+            _norm_dict!(convert)
+        end
+    else
+        error("Please check your convert dictionary")
+    end
+
     data_len, loc_dict_vector, seq_matrix = _location_data(R.fasta_loc)
-    blo = blosum_matrix(blonum)
-    x_col_vector = Vector{Vector{Float64}}()
-    loc_vector = Vector{Tuple{Int, Char}}()
+    x_col_vector = Vector{Vector{Float32}}()
+    loc_vector = Vector{Int64}()
     for (ind, (dict, col)) in enumerate(zip(loc_dict_vector, eachcol(seq_matrix)))
         max_val = maximum(values(dict))
-        max_amino = _find_key(dict, max_val)
         if '-' ∉ keys(dict) && ami_arr ≤ data_len - max_val 
-            push!(x_col_vector, [blo[max_amino, i] for i in col])
-            push!(loc_vector, (ind, max_amino))
+            push!(x_col_vector, [convert[i] for i in col])
+            push!(loc_vector, ind)
         end
     end
 
@@ -701,9 +680,9 @@ function _get_data(R::AbstractRF, ami_arr::Int, excel_col::Char, norm::Bool, blo
         excel_select_vector = _min_max_norm(excel_select_vector)
     end
     
-    x = Matrix{Float64}(hcat(x_col_vector...))
-    y = Vector{Float64}(excel_select_vector)
-    l = Vector{Tuple{Int, Char}}(loc_vector)
+    x = Matrix{Float32}(hcat(x_col_vector...))
+    y = Vector{Float32}(excel_select_vector)
+    l = Vector{Int}(loc_vector)
     return x, y, l
 end
 
@@ -724,32 +703,24 @@ function _location_data(fasta_loc::String)
     return size(seq_matrix)[1], loc_vector, seq_matrix
 end
 
-function _find_key(dict::Dict{Char, Int}, tar::Int)
-    for k in keys(dict)
-        if dict[k] == tar
-            return k
-        end
-    end
-end
-
-function _min_max_norm(vec::Vector{Float64})
+function _min_max_norm(vec::Vector{Float32})
     mi = minimum(vec)
     ma = maximum(vec)
     return [(i - mi) / (ma - mi) for i in vec]
 end
 
 """
-    get_amino_loc(R::AbstractRF, L::Vector{Tuple{Int, Char}})
+    get_amino_loc(R::AbstractRF, L::Vector{Int})
 
 Return string sequence index vector with start index.
 """
-function get_amino_loc(R::AbstractRF, L::Vector{Tuple{Int, Char}})
+function get_amino_loc(R::AbstractRF, L::Vector{Int})
     return [string(i[1] + R.amino_loc - 1) for i in L]
 end
 
 """
-    get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64},
-                       L::Vector{Tuple{Int, Char}}, feat::Int, tree::Int;
+    get_reg_importance(R::AbstractRF, X::Matrix{Float32}, Y::Vector{Float32},
+                       L::Vector{Int}, feat::Int, tree::Int;
                        val_mode::Bool=false, test_size::Float64=0.3,
                        show_number::Int=20, imp_iter::Int=60,
                        data_state::UInt64=@seed_u64,
@@ -768,20 +739,20 @@ Caculate regression model and feature importance, then draw random forest result
 
 # Arguments
 - `R::AbstractRF` : for both [`RF`](@ref) and [`RFI`](@ref).
-- `X::Matrix{Float64}` : `X` data.
-- `Y::Vector{Float64}` : `Y` data.
-- `L::Vector{Tuple{Int, Char}}` : `L` data.
+- `X::Matrix{Float32}` : `X` data.
+- `Y::Vector{Float32}` : `Y` data.
+- `L::Vector{Int}` : `L` data.
 - `feat::Int` : number of selected features.
 - `tree::Int` : number of trees.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
-- `test_size::Float64` : size of test set.
+- `test_size::Float32` : size of test set.
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
 - `data_state::UInt64` : seed used to split data.
 - `learn_state::Int` : seed used to caculate a regression model.
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
-function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{Tuple{Int, Char}}, feat::Int, tree::Int;
+function get_reg_importance(R::AbstractRF, X::Matrix{Float32}, Y::Vector{Float32}, L::Vector{Int}, feat::Int, tree::Int;
     val_mode::Bool=false, test_size::Float64=0.3, show_number::Int=20, imp_iter::Int=60,
     data_state::UInt64=@seed_u64, learn_state::Int=@seed_i, imp_state::UInt64=@seed_u64)
     
@@ -799,18 +770,69 @@ function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64
         ylabel("Predictions")
         axis("equal")
         axis("square")
-        xlim(0, xlim()[2])
-        ylim(0, ylim()[2])
+        
         plot([-1000, 1000], [-1000, 1000], color="black")
         PyPlot.title("Random Forest Regression Result")
         @show_pyplot
         @printf "NRMSE : %.6f\n" nrmse(predict_test, y_test)
     end
-    return regr, _rf_importance(regr, DataFrame(X, get_amino_loc(R, L)), imp_iter, seed=imp_state, show_number=show_number, val_mode=val_mode)
+    return regr, _rf_importance(regr, DataFrame(X, string.(L)), imp_iter, seed=imp_state, show_number=show_number, val_mode=val_mode)
 end
 
 """
-    rf_model(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
+    rf_nrmse(X::Matrix{Float32}, Y::Vector{Float32}, feat::Int, tree::Int;
+             val_mode::Bool=false, test_size::Float64=0.3, 
+             data_state::UInt64=@seed_u64, 
+             learn_state::Int=@seed_i)
+
+# Examples
+```julia-repl
+julia> M, NE = rf_nrmse(X, Y, 6, 800);
+```
+
+Caculate normalized root mean square error, then draw random forest result.
+
+# Arguments
+- `X::Matrix{Float32}` : `X` data.
+- `Y::Vector{Float32}` : `Y` data.
+- `feat::Int` : number of selected features.
+- `tree::Int` : number of trees.
+- `val_mode::Bool` : when `val_mode` is true, function don't display anything.
+- `test_size::Float32` : size of test set.
+- `data_state::UInt64` : seed used to split data.
+- `learn_state::Int` : seed used to caculate a regression model.
+"""
+function rf_nrmse(X::Matrix{Float32}, Y::Vector{Float32}, feat::Int, tree::Int;
+    val_mode::Bool=false, test_size::Float64=0.3, data_state::UInt64=@seed_u64, learn_state::Int=@seed_i)
+
+    x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
+    regr = RandomForestRegressor(n_trees=tree, n_subfeatures=feat, min_samples_leaf=1, rng=learn_state)
+    DecisionTree.fit!(regr, x_train, y_train)
+    predict_test = parallel_predict(regr, x_test)
+    nrmse_val = nrmse(predict_test, y_test)
+
+    if val_mode == false
+        predict_train = parallel_predict(regr, x_train)
+        scatter(y_train, predict_train, color="orange", label="Train value")
+        scatter(y_test, predict_test, color="blue" , label="Test value")
+        legend(loc=4)
+        PyPlot.title("Random Forest Regression Result")
+        xlabel("True Values")
+        ylabel("Predictions")
+        axis("equal")
+        axis("square")
+        axis_min = max(0, minimum(Y))
+        xlim(axis_min, xlim()[2])
+        ylim(axis_min, ylim()[2])
+        plot([-1000, 1000], [-1000, 1000], color="black")
+        @show_pyplot
+        @printf "NRMSE : %.6f\n" nrmse_val
+    end
+    return regr, nrmse_val
+end
+
+"""
+    rf_model(X::Matrix{Float32}, Y::Vector{Float32}, feat::Int, tree::Int;
              val_mode::Bool=false, test_size::Float64=0.3, 
              data_state::UInt64=@seed_u64, 
              learn_state::Int=@seed_i)
@@ -823,16 +845,16 @@ julia> M = rf_model(X, Y, 6, 800);
 Caculate regression model, then draw random forest result.
 
 # Arguments
-- `X::Matrix{Float64}` : `X` data.
-- `Y::Vector{Float64}` : `Y` data.
+- `X::Matrix{Float32}` : `X` data.
+- `Y::Vector{Float32}` : `Y` data.
 - `feat::Int` : number of selected features.
 - `tree::Int` : number of trees.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
-- `test_size::Float64` : size of test set.
+- `test_size::Float32` : size of test set.
 - `data_state::UInt64` : seed used to split data.
 - `learn_state::Int` : seed used to caculate a regression model.
 """
-function rf_model(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
+function rf_model(X::Matrix{Float32}, Y::Vector{Float32}, feat::Int, tree::Int;
     val_mode::Bool=false, test_size::Float64=0.3, data_state::UInt64=@seed_u64, learn_state::Int=@seed_i)
 
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
@@ -850,8 +872,9 @@ function rf_model(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
         ylabel("Predictions")
         axis("equal")
         axis("square")
-        xlim(0, xlim()[2])
-        ylim(0, ylim()[2])
+        axis_min = max(0, minimum(Y))
+        xlim(axis_min, xlim()[2])
+        ylim(axis_min, ylim()[2])
         plot([-1000, 1000], [-1000, 1000], color="black")
         @show_pyplot
         @printf "NRMSE : %.6f\n" nrmse(predict_test, y_test)
@@ -861,7 +884,7 @@ end
 
 """
     rf_importance(R::AbstractRF, regr::RandomForestRegressor,
-                  X::Matrix{Float64}, L::Vector{Tuple{Int, Char}};
+                  X::Matrix{Float32}, L::Vector{Int};
                   val_mode::Bool=false,
                   show_number::Int=20, imp_iter::Int=60,
                   imp_state::UInt64=@seed_u64)
@@ -876,16 +899,16 @@ Caculate feature importance for a target model, then draw feature importance lis
 # Arguments
 - `R::AbstractRF` : for both [`RF`](@ref) and [`RFI`](@ref).
 - `regr::RandomForestRegressor` : target regression model.
-- `X::Matrix{Float64}` : `X` data.
-- `L::Vector{Tuple{Int, Char}}` : `L` data
+- `X::Matrix{Float32}` : `X` data.
+- `L::Vector{Int}` : `L` data
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
-function rf_importance(R::AbstractRF, regr::RandomForestRegressor, X::Matrix{Float64}, L::Vector{Tuple{Int, Char}};
+function rf_importance(R::AbstractRF, regr::RandomForestRegressor, X::Matrix{Float32}, L::Vector{Int};
     val_mode::Bool=false, show_number::Int=20, imp_iter::Int=60, imp_state::UInt64=@seed_u64)
-    return _rf_importance(regr, DataFrame(X, get_amino_loc(R, L)), imp_iter, seed=imp_state, val_mode=val_mode, show_number=show_number)
+    return _rf_importance(regr, DataFrame(X, string.(L)), imp_iter, seed=imp_state, val_mode=val_mode, show_number=show_number)
 end
 
 function _rf_importance(regr::RandomForestRegressor, dx::DataFrame, iter::Int=60; 
@@ -905,10 +928,11 @@ function _rf_importance(regr::RandomForestRegressor, dx::DataFrame, iter::Int=60
 end
 
 function _rf_dfpredict(regr::RandomForestRegressor, x::DataFrame)
-    return DataFrame(y_pred = parallel_predict(regr, Matrix{Float64}(x)))
+    return DataFrame(y_pred = parallel_predict(regr, Matrix{Float32}(x)))
 end
 
-function _view_importance(fe::Vector{Float64}, get_loc::Vector{String}, baseline::Float64; show_number::Int=20)
+function _view_importance(fe::Vector{Float32}, get_loc::Vector{String}, baseline::Float32; show_number::Int=20)
+    show_number = min(length(fe), show_number)
     sorted_idx = sortperm(fe, rev=true)
     bar_pos = [length(sorted_idx):-1:1;] .- 0.5
     barh(bar_pos[1:show_number], fe[sorted_idx][1:show_number], align="center")
@@ -920,8 +944,8 @@ function _view_importance(fe::Vector{Float64}, get_loc::Vector{String}, baseline
 end
 
 """
-    view_importance(R::AbstractRF, L::Vector{Tuple{Int, Char}},
-                    F::Vector{Float64}; show_number::Int=20)
+    view_importance(R::AbstractRF, L::Vector{Int},
+                    F::Vector{Float32}; show_number::Int=20)
 
 # Examples
 ```julia-repl
@@ -934,19 +958,20 @@ Draw feature importance list.
 
 # Arguments
 - `R::AbstractRF` : for both [`RF`](@ref) and [`RFI`](@ref).
-- `L::Vector{Tuple{Int, Char}}` : `L` data.
-- `F::Vector{Float64}` : feature importance vector.
+- `L::Vector{Int}` : `L` data.
+- `F::Vector{Float32}` : feature importance vector.
 - `show_number::Int` : number of locations to show importance.
 """
-function view_importance(R::AbstractRF, L::Vector{Tuple{Int, Char}}, F::Vector{Float64}; show_number::Int=20)
-    _view_importance(F, get_amino_loc(R, L), show_number=show_number)
+function view_importance(R::AbstractRF, L::Vector{Int}, F::Vector{Float32}; show_number::Int=20)
+    _view_importance(F, string.(L), show_number=show_number)
 end
 
-function _view_importance(fi::Vector{Float64}, get_loc::Vector{String}; show_number::Int=20)
-    fi /= maximum(fi)
-    sorted_idx = sortperm(fi, rev=true)
+function _view_importance(fe::Vector{Float32}, get_loc::Vector{String}; show_number::Int=20)
+    show_number = min(length(fe), show_number)
+    fe /= maximum(fe)
+    sorted_idx = sortperm(fe, rev=true)
     bar_pos = [length(sorted_idx):-1:1;] .- 0.5
-    barh(bar_pos[1:show_number], fi[sorted_idx][1:show_number], align="center")
+    barh(bar_pos[1:show_number], fe[sorted_idx][1:show_number], align="center")
     yticks(bar_pos[1:show_number], get_loc[sorted_idx][1:show_number])
     xlabel("Feature Importance")
     ylabel("Amino acid Location")
@@ -955,8 +980,8 @@ function _view_importance(fi::Vector{Float64}, get_loc::Vector{String}; show_num
 end
 
 """
-    iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64},
-                            L::Vector{Tuple{Int, Char}},
+    iter_get_reg_importance(R::AbstractRF, X::Matrix{Float32}, Y::Vector{Float32},
+                            L::Vector{Int},
                             feet::Int, tree::Int, iter::Int;
                             val_mode::Bool=false, test_size::Float64=0.3,
                             show_number::Int=20, imp_iter::Int=60,
@@ -972,26 +997,26 @@ Returns the mean and standard deviation of feature importance.
 
 # Arguments
 - `R::AbstractRF` : for both [`RF`](@ref) and [`RFI`](@ref).
-- `X::Matrix{Float64}` : `X` data.
-- `Y::Vector{Float64}` : `Y` data.
-- `L::Vector{Tuple{Int, Char}}` : `L` data.
+- `X::Matrix{Float32}` : `X` data.
+- `Y::Vector{Float32}` : `Y` data.
+- `L::Vector{Int}` : `L` data.
 - `feat::Int` : number of selected features.
 - `tree::Int` : number of trees.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
-- `test_size::Float64` : size of test set.
+- `test_size::Float32` : size of test set.
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
 - `data_state::UInt64` : seed used to split data.
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 - `learn_state_seed::UInt64` : seed used to generate seed used to caculate a regression model.
 """
-function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{Tuple{Int, Char}}, feet::Int, tree::Int, iter::Int;
+function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float32}, Y::Vector{Float32}, L::Vector{Int}, feet::Int, tree::Int, iter::Int;
     val_mode::Bool=false, test_size::Float64=0.3, show_number::Int=20, imp_iter::Int=60,
     data_state::UInt64=@seed_u64, imp_state::UInt64=@seed_u64, learn_state_seed::UInt64=@seed_u64)
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
     f = zeros(length(L), iter)
     n = zeros(iter)
-    loc_list = get_amino_loc(R, L)
+    loc_list = string.(L)
     learn_state_vector = Vector{Int}(rand(MersenneTwister(learn_state_seed), 0:typemax(Int), iter))
     for i in 1:iter
         f[:, i], n[i] = _iter_get_reg_importance(X, x_train, x_test, y_train, y_test, loc_list, feet, tree, imp_iter, imp_state, learn_state_vector[i])
@@ -1006,15 +1031,15 @@ function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Fl
     return mf, sf
 end
 
-function _iter_get_reg_importance(x::Matrix{Float64}, x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, loc::Vector{String}, feet::Int, tree::Int, imp_iter::Int, imp_state::UInt64, learn_state::Int)
+function _iter_get_reg_importance(x::Matrix{Float32}, x_train::Matrix{Float32}, x_test::Matrix{Float32}, y_train::Vector{Float32}, y_test::Vector{Float32}, loc::Vector{String}, feet::Int, tree::Int, imp_iter::Int, imp_state::UInt64, learn_state::Int)
     regr = RandomForestRegressor(n_trees=tree, n_subfeatures=feet, min_samples_leaf=1, rng=learn_state)
     DecisionTree.fit!(regr, x_train, y_train)
     return _rf_importance(regr, DataFrame(x, loc), imp_iter, seed=imp_state, val_mode=true), nrmse(regr, x_test, y_test)
 end
 
 """
-    view_importance(R::AbstractRF, L::Vector{Tuple{Int, Char}},
-                    MF::Vector{Float64}, SF::Vector{Float64};
+    view_importance(R::AbstractRF, L::Vector{Int},
+                    MF::Vector{Float32}, SF::Vector{Float32};
                     show_number::Int=20)
 
 # Examples
@@ -1026,16 +1051,17 @@ Draw feature importance list with standard deviation.
 
 # Arguments
 - `R::AbstractRF` : for both [`RF`](@ref) and [`RFI`](@ref).
-- `L::Vector{Tuple{Int, Char}}` : `L` data.
-- `MF::Vector{Float64}` : mean feature importance vector.
-- `SF::Vector{Float64}` : standard deviation feature importance vector.
+- `L::Vector{Int}` : `L` data.
+- `MF::Vector{Float32}` : mean feature importance vector.
+- `SF::Vector{Float32}` : standard deviation feature importance vector.
 - `show_number::Int` : number of locations to show importance.
 """
-function view_importance(R::AbstractRF, L::Vector{Tuple{Int, Char}}, MF::Vector{Float64}, SF::Vector{Float64}; show_number::Int=20)
-    _iter_view_importance(MF, SF, get_amino_loc(R, L), show_number=show_number)
+function view_importance(R::AbstractRF, L::Vector{Int}, MF::Vector{Float32}, SF::Vector{Float32}; show_number::Int=20)
+    _iter_view_importance(MF, SF, string.(L), show_number=show_number)
 end
 
-function _iter_view_importance(fe::Vector{Float64}, err::Vector{Float64}, loc::Vector{String}; show_number::Int=20)
+function _iter_view_importance(fe::Vector{Float32}, err::Vector{Float32}, loc::Vector{String}; show_number::Int=20)
+    show_number = min(length(fe), show_number)
     norm_val = maximum(fe)
     fe /= norm_val
     err /= norm_val
@@ -1052,7 +1078,7 @@ end
 # RFI function
 
 """
-    get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64};
+    get_reg_value(RI::AbstractRFI, X::Matrix{Float32}, Y::Vector{Float32};
                   val_mode::Bool=false, test_size::Float64=0.3,
                   data_state::UInt64=@seed_u64,
                   learn_state::Int=@seed_i)
@@ -1065,17 +1091,17 @@ Calculate [`nrmse`](@ref) value for each `nfeat`, `ntree` condition, then draw [
 
 # Arguments
 - `RI::AbstractRFI` : for only [`RFI`](@ref).
-- `X::Matrix{Float64}` : `X` data.
-- `Y::Vector{Float64}` : `Y` data.
+- `X::Matrix{Float32}` : `X` data.
+- `Y::Vector{Float32}` : `Y` data.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
-- `test_size::Float64` : size of test set.
+- `test_size::Float32` : size of test set.
 - `data_state::UInt64` : seed used to split data.
 - `learn_state::Int` : seed used to caculate a regression model.
 """
-function get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64};
+function get_reg_value(RI::AbstractRFI, X::Matrix{Float32}, Y::Vector{Float32};
     val_mode::Bool=false, test_size::Float64=0.3, data_state::UInt64=@seed_u64, learn_state::Int=@seed_i)
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
-    z = zeros(Float64, length(RI.nfeat), length(RI.ntree))
+    z = zeros(Float32, length(RI.nfeat), length(RI.ntree))
     task = [(i[1], j[1], i[2], j[2]) for i in enumerate(RI.nfeat), j in enumerate(RI.ntree)]
     
     Threads.@threads for (i, j, feat, tree) in task
@@ -1088,14 +1114,14 @@ function get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64};
     return z
 end
 
-function _get_reg_value(x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, feat::Int, tree::Int, learn_state::Int)
+function _get_reg_value(x_train::Matrix{Float32}, x_test::Matrix{Float32}, y_train::Vector{Float32}, y_test::Vector{Float32}, feat::Int, tree::Int, learn_state::Int)
     regr = RandomForestRegressor(n_trees=tree, n_subfeatures=feat, min_samples_leaf=1, rng=learn_state)
     DecisionTree.fit!(regr, x_train, y_train)
     return nrmse(regr, x_test, y_test)
 end
 
 """
-    get_reg_value_loc(RI::AbstractRFI, Z::Matrix{Float64})
+    get_reg_value_loc(RI::AbstractRFI, Z::Matrix{Float32})
 
 # Examples
 ```julia-repl
@@ -1109,13 +1135,13 @@ Returns the best arguemnts depending on the [`nrmse`](@ref) value.
     + `Int` : number of selected features.
     + `Int` : number of trees.
 """
-function get_reg_value_loc(RI::AbstractRFI, Z::Matrix{Float64})
+function get_reg_value_loc(RI::AbstractRFI, Z::Matrix{Float32})
     i, j = Tuple(findmin(Z)[2])
     return collect(RI.nfeat)[i], collect(RI.ntree)[j] 
 end
 
 """
-    view_reg3d(RI::AbstractRFI, Z::Matrix{Float64};
+    view_reg3d(RI::AbstractRFI, Z::Matrix{Float32};
                title::Union{String, Nothing}=nothing,
                elev::Union{Real, Nothing}=nothing,
                azim::Union{Real, Nothing}=nothing,
@@ -1132,13 +1158,13 @@ julia> view_reg3d(RI, SZ, title="NRMSE SD value", elev=120, scale=3);
 
 # Arguments
 - `RI::AbstractRFI` : for only [`RFI`](@ref).
-- `Z::Matrix{Float64}` : [`nrmse`](@ref) matrix.
+- `Z::Matrix{Float32}` : [`nrmse`](@ref) matrix.
 - `title::Union{String, Nothing}` : title of the 3d graph.
 - `elev::Union{Real, Nothing}` : elevation viewing angle.
 - `azim::Union{Real, Nothing}` : azimuthal viewing angle.
 - `scale::Int` : decimal place to determine the limitation value of z axis.
 """
-function view_reg3d(RI::AbstractRFI, Z::Matrix{Float64}; title::Union{String, Nothing}=nothing, elev::Union{Real, Nothing}=nothing, azim::Union{Real, Nothing}=nothing, scale::Int=2)
+function view_reg3d(RI::AbstractRFI, Z::Matrix{Float32}; title::Union{String, Nothing}=nothing, elev::Union{Real, Nothing}=nothing, azim::Union{Real, Nothing}=nothing, scale::Int=2)
     nfeat_list = [RI.nfeat;]' .* ones(length(RI.ntree))
     ntree_list = ones(length(RI.nfeat))' .* [RI.ntree;]
     fig = figure()
@@ -1156,7 +1182,7 @@ function view_reg3d(RI::AbstractRFI, Z::Matrix{Float64}; title::Union{String, No
 end
 
 """
-    iter_get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64}, iter::Int;
+    iter_get_reg_value(RI::AbstractRFI, X::Matrix{Float32}, Y::Vector{Float32}, iter::Int;
                        val_mode::Bool=false, test_size::Float64=0.3,
                        learn_state::Int=@seed_i,
                        data_state_seed::UInt64=@seed_u64)
@@ -1171,14 +1197,14 @@ Returns the mean and standard deviation of [`nrmse`](@ref) value.
 
 # Arguments
 - `RI::AbstractRFI` : for only [`RFI`](@ref).
-- `X::Matrix{Float64}` : `X` data.
-- `Y::Vector{Float64}` : `Y` data.
+- `X::Matrix{Float32}` : `X` data.
+- `Y::Vector{Float32}` : `Y` data.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
-- `test_size::Float64` : size of test set.
+- `test_size::Float32` : size of test set.
 - `learn_state::Int` : seed used to caculate a regression model.
 - `data_state_seed::UInt64` : seed used to generate seed used to split data.
 """
-function iter_get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64}, iter::Int;
+function iter_get_reg_value(RI::AbstractRFI, X::Matrix{Float32}, Y::Vector{Float32}, iter::Int;
     val_mode::Bool=false, test_size::Float64=0.3, learn_state::Int=@seed_i, data_state_seed::UInt64=@seed_u64)
     z = zeros(length(RI.nfeat), length(RI.ntree), iter)
     data_state_vector = Vector{UInt64}(rand(MersenneTwister(data_state_seed), UInt64, iter))
@@ -1195,5 +1221,25 @@ function iter_get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float
 
     return vz, sz
 end
+
+# Convert dictionary
+
+"""
+Convert dictionary about molar volume of amino acid.
+"""
+volume = Dict{Char, Float32}('A' => 88.6, 'R' => 173.4, 'N' => 114.1, 'D' => 111.1, 'C' => 108.5, 'Q' => 143.8, 'E' => 138.4, 'G' => 60.1, 'H' => 153.2, 'I' => 166.7, 'L' => 166.7, 'K' => 168.6, 'M' => 162.9, 'F' => 189.9, 'P' => 112.7, 'S' => 89, 'T' => 116.1, 'W' => 227.8, 'Y' => 193.6, 'V' => 140)
+_norm_dict!(volume)
+
+"""
+Convert dictionary about molar pI of amino acid.
+"""
+pI = Dict{Char, Float32}('A' => 6.11, 'R' => 10.76, 'N' => 5.43, 'D' => 2.98, 'C' => 5.15, 'E' => 3.08, 'Q' => 5.65, 'G' => 6.06, 'H' => 7.64, 'I' => 6.04, 'L' => 6.04, 'K' => 9.47, 'M' => 5.71, 'F' => 5.76, 'P' => 6.30, 'S' => 5.70, 'T' => 5.60, 'W' => 5.88, 'Y' => 5.63, 'V' => 6.02)
+_norm_dict!(pI)
+
+"""
+Convert dictionary about molar hydrophobicity of amino acid.
+"""
+hydrophobicity = Dict{Char, Float32}('I' => 3.1, 'V' => 2.6, 'L' => 2.8, 'F' => 3.7, 'C'=> 2.0, 'M' => 3.4, 'A' => 1.6, 'G' => 1.0, 'T' => 1.2, 'S' => 0.6, 'W' => 1.2, 'Y' => -0.7, 'P' => -0.2, 'H' => -3.0, 'E' => -8.2, 'Q' => -4.1, 'D' => -9.2, 'N' => 4.8, 'K' => -8.8, 'R' => -12.3)
+_norm_dict!(hydrophobicity)
 
 end # module end
