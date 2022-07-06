@@ -4,6 +4,7 @@ Documentaion for `ProRF`'s useful things to perform data preprocessing or random
 ## Random Forest
 ```@docs
 train_test_split
+test_nrmse
 nrmse
 save_model
 load_model

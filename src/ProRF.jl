@@ -192,6 +192,21 @@ function nrmse(regr::RandomForestRegressor, X::Matrix{Float32}, tru::Vector{Floa
 end
 
 """
+    test_nrmse(regr::RandomForestRegressor, X::Matrix{Float32}, tru::Vector{Float32}, data_state::UInt64;
+               test_size::Float64=0.3, test_mode::Bool=true)
+
+Compute test or train set normalized root mean square error with regression model, `X` data, true value and seed used to split data.
+"""
+function test_nrmse(regr::RandomForestRegressor, X::Matrix{Float32}, tru::Vector{Float32}, data_state::UInt64; test_size::Float64=0.3, test_mode::Bool=true)
+    n = length(tru)
+    idx = shuffle(MersenneTwister(data_state), 1:n)
+    ed_idx = test_mode ? view(idx, 1:floor(Int, test_size*n)) : view(idx, (floor(Int, test_size*n)+1):n)
+    X = X[ed_idx, :]
+    tru = tru[ed_idx]
+    return L2dist(parallel_predict(regr, X), tru) / (maximum(tru) - minimum(tru)) / length(tru)^0.5
+end
+
+"""
     parallel_predict(regr::RandomForestRegressor, X::Matrix{Float32})
 
 Execute `DecisionTree.predict(regr, X)` in parallel.
