@@ -192,7 +192,8 @@ function nrmse(regr::RandomForestRegressor, X::Matrix{Float64}, tru::Vector{Floa
 end
 
 """
-    test_nrmse(regr::RandomForestRegressor, X::Matrix{Float64}, tru::Vector{Float64}, data_state::UInt64;
+    test_nrmse(regr::RandomForestRegressor, X::Matrix{Float64}, tru::Vector{Float64},
+               data_state::UInt64;
                test_size::Float64=0.3, test_mode::Bool=true)
 
 Compute test or train set normalized root mean square error with regression model, `X` data, true value and seed used to split data.
@@ -221,18 +222,10 @@ function parallel_predict(regr::RandomForestRegressor, X::Matrix{Float64})
     return val_vector
 end
 
-function parallel_predict(regr::RandomForestRegressor, X::Matrix{Float64})
-    test_vector = [Vector{Float64}(row) for row in eachrow(X)]
-    val_vector = similar(test_vector, Float64)
-
-    Threads.@threads for (ind, vec) in collect(enumerate(test_vector))
-        val_vector[ind] = DecisionTree.predict(regr, vec)
-    end
-    return val_vector
-end
-
 """
-    parallel_predict(regr::RandomForestRegressor, L::Vector{Int}, seq_vector::Vector{String}; convert::Dict{Char, Float64}=ProRF.volume)
+    parallel_predict(regr::RandomForestRegressor, L::Vector{Int},
+                     seq_vector::Vector{String};
+                     convert::Dict{Char, Float64}=ProRF.volume)
 
 Get raw sequence vector and `L` data to make `X` data and execute `DecisionTree.predict(regr, X)` in parallel.
 """
@@ -334,14 +327,6 @@ function train_test_split(X::Matrix{Float64}, Y::Vector{Float64}; test_size::Flo
     X[train_idx,:], X[test_idx,:], Y[train_idx], Y[test_idx]
 end
 
-function train_test_split(X::Matrix{Float64}, Y::Vector{Float64}; test_size::Float64=0.3, data_state::UInt64=@seed_u64)
-    # https://discourse.julialang.org/t/simple-tool-for-train-test-split/473/3
-    n = length(Y)
-    idx = shuffle(MersenneTwister(data_state), 1:n)
-    train_idx = view(idx, (floor(Int, test_size*n)+1):n)
-    test_idx = view(idx, 1:floor(Int, test_size*n))
-    X[train_idx,:], X[test_idx,:], Y[train_idx], Y[test_idx]
-end
 """
     save_model(model_loc::String, regr::RandomForestRegressor)
 
