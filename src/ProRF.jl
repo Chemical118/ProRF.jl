@@ -6,7 +6,7 @@ using FASTX, BioAlignments, XLSX, Phylo, AxisArrays
 
 export AbstractRF, AbstractRFI, RF, RFI
 export get_data, view_mutation, view_reg3d, view_importance, view_sequence
-export train_test_split, nrmse, load_model, save_model, julia_isinteractive
+export train_test_split, test_nrmse, nrmse, load_model, save_model, julia_isinteractive
 export get_reg_importance, iter_get_reg_importance, parallel_predict
 export get_reg_value, get_reg_value_loc, iter_get_reg_value, rf_importance, rf_model, rf_nrmse
 export data_preprocess_fill, data_preprocess_index
