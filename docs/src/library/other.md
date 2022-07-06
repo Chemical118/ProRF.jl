@@ -58,10 +58,10 @@ ProRF.@show_pyplot
 ```
 
 ## Reference
-\[1\] : Brooks, D. J., Fresco, J. R., Lesk, A. M., & Singh, M. (2002). Evolution of Amino Acid Frequencies in Proteins Over Deep Time: Inferred Order of Introduction of Amino Acids into the Genetic Code. In Molecular Biology and Evolution (Vol. 19, Issue 10, pp. 1645–1655). Oxford University Press (OUP).  
+\[1\] : Brooks, D. J., Fresco, J. R., Lesk, A. M., & Singh, M. (2002). Evolution of amino acid frequencies in proteins over deep time: inferred order of introduction of amino acids into the genetic code. *Molecular Biology and Evolution, 19*(10), 1645–1655. <https://doi.org/10.1093/oxfordjournals.molbev.a003988>
 
-\[2\] :  Lide, D. R. (Ed.). (1991). Hdbk of chemistry & physics 72nd edition (72nd ed.). CRC Press.
+\[2\] :  Lide, D. R. (Ed.). (1991). *Hdbk of chemistry & physics 72nd edition* (72nd ed.). CRC Press.
 
-\[3\] :  Zamyatnin, A. A. (1972). Protein volume in solution. In Progress in Biophysics and Molecular Biology (Vol. 24, pp. 107–123). Elsevier BV.  
+\[3\] :  Zamyatnin, A. (1984). Amino Acid, Peptide, and Protein Volume in Solution. *Annual Review of Biophysics and Biomolecular Structure, 13*(1), 145–165. <https://doi.org/10.1146/annurev.biophys.13.1.145>
 
-\[4\] :  Naderi-Manesh, H., Sadeghi, M., Arab, S., & Moosavi Movahedi, A. A. (2001). Prediction of protein surface accessibility with information theory. In Proteins: Structure, Function, and Bioinformatics (Vol. 42, Issue 4, pp. 452–459). Wiley.
+\[4\] :  Naderi-Manesh, H., Sadeghi, M., Arab, S., & Moosavi Movahedi, A. A. (2001). Prediction of protein surface accessibility with information theory. *Proteins, 42*(4), 452–459. [https://doi.org/10.1002/1097-0134(20010301)42:4<452::aid-prot40>3.0.co;2-q](https://doi.org/10.1002/1097-0134(20010301)42:4<452::aid-prot40>3.0.co;2-q)

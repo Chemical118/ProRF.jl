@@ -911,17 +911,12 @@ Caculate feature importance for a target model, then draw feature importance lis
 - `R::AbstractRF` : for both [`RF`](@ref) and [`RFI`](@ref).
 - `regr::RandomForestRegressor` : target regression model.
 - `X::Matrix{Float64}` : `X` data.
-- `L::Vector{Int}` : `L` data
+- `L::Vector{Int}` : `L` data.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
-function rf_importance(R::AbstractRF, regr::RandomForestRegressor, X::Matrix{Float64}, L::Vector{Int};
-    val_mode::Bool=false, show_number::Int=20, imp_iter::Int=60, imp_state::UInt64=@seed_u64)
-    return _rf_importance(regr, DataFrame(X, string.(L)), imp_iter, seed=imp_state, val_mode=val_mode, show_number=show_number)
-end
-
 function rf_importance(R::AbstractRF, regr::RandomForestRegressor, X::Matrix{Float64}, L::Vector{Int};
     val_mode::Bool=false, show_number::Int=20, imp_iter::Int=60, imp_state::UInt64=@seed_u64)
     return _rf_importance(regr, DataFrame(X, string.(L)), imp_iter, seed=imp_state, val_mode=val_mode, show_number=show_number)
