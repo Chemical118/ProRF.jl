@@ -5,7 +5,7 @@ using PyCall, Random, Statistics, Printf, PyPlot, StatsBase
 using FASTX, BioAlignments, XLSX, Phylo, AxisArrays
 
 export AbstractRF, AbstractRFI, RF, RFI
-export get_data, get_amino_loc, view_mutation, view_reg3d, view_importance, view_sequence
+export get_data, view_mutation, view_reg3d, view_importance, view_sequence
 export train_test_split, nrmse, load_model, save_model, julia_isinteractive
 export get_reg_importance, iter_get_reg_importance, parallel_predict
 export get_reg_value, get_reg_value_loc, iter_get_reg_value, rf_importance, rf_model, rf_nrmse
@@ -121,7 +121,8 @@ end
 # Normal function
 
 function _norm_dict!(dict::Dict{Char, Float32})
-    dict['X'] = mean(values(dict))
+    norm_aa = [('A', 0.0777f0), ('R', 0.0627f0), ('N', 0.0336f0), ('D', 0.0542f0), ('C', 0.0078f0), ('Q', 0.0315f0), ('E', 0.0859f0), ('G', 0.0730f0), ('H', 0.0192f0), ('I', 0.0666f0), ('L', 0.0891f0), ('K', 0.0776f0), ('M', 0.0241f0), ('F', 0.0361f0), ('P', 0.0435f0), ('S', 0.0466f0), ('T', 0.0487f0), ('W', 0.0102f0), ('Y', 0.0300f0), ('V', 0.0817f0), ]
+    dict['X'] = Float32(sum(map(x -> dict[x[1]] * x[2], norm_aa)) / sum(map(x -> x[2], norm_aa)))
 end
 
 """
@@ -652,8 +653,8 @@ function get_data(R::AbstractRF, excel_col::Char; norm::Bool=false, convert::Dic
 end
 
 function _get_data(R::AbstractRF, ami_arr::Int, excel_col::Char, norm::Bool, convert::Dict{Char, Float32}, sheet::String, title::Bool)
-    aa_set = Set(['M', 'P', 'K', 'Q', 'I', 'H', 'E', 'W', 'T', 'S', 'C', 'D', 'A', 'L', 'Y', 'V', 'R', 'G', 'N', 'F'])
-    key_set = Set(keys(convert))
+    aa_set = Set{Char}(['M', 'P', 'K', 'Q', 'I', 'H', 'E', 'W', 'T', 'S', 'C', 'D', 'A', 'L', 'Y', 'V', 'R', 'G', 'N', 'F'])
+    key_set = Set{Char}(keys(convert))
     if issubset(aa_set, key_set)
         if 'X' ∉ key_set
             _norm_dict!(convert)
@@ -706,15 +707,6 @@ function _min_max_norm(vec::Vector{Float32})
     mi = minimum(vec)
     ma = maximum(vec)
     return [(i - mi) / (ma - mi) for i in vec]
-end
-
-"""
-    get_amino_loc(R::AbstractRF, L::Vector{Int})
-
-Return string sequence index vector with start index.
-"""
-function get_amino_loc(R::AbstractRF, L::Vector{Int})
-    return [string(i[1] + R.amino_loc - 1) for i in L]
 end
 
 """
@@ -1225,8 +1217,6 @@ end
 
 """
 Convert dictionary about molar volume of amino acid.
-
-Reference by Zamyatnin, A. A. (1972). Protein volume in solution. In Progress in Biophysics and Molecular Biology (Vol. 24, pp. 107–123). Elsevier BV.
 """
 volume = Dict{Char, Float32}('A' => 88.6, 'R' => 173.4, 'N' => 114.1, 'D' => 111.1, 'C' => 108.5, 'Q' => 143.8, 'E' => 138.4, 'G' => 60.1, 'H' => 153.2, 'I' => 166.7, 'L' => 166.7, 'K' => 168.6, 'M' => 162.9, 'F' => 189.9, 'P' => 112.7, 'S' => 89, 'T' => 116.1, 'W' => 227.8, 'Y' => 193.6, 'V' => 140)
 _norm_dict!(volume)
@@ -1239,8 +1229,6 @@ _norm_dict!(pI)
 
 """
 Convert dictionary about hydrophobicity of amino acid.
-
-Reference by Naderi-Manesh, H., Sadeghi, M., Arab, S., & Moosavi Movahedi, A. A. (2001). Prediction of protein surface accessibility with information theory. In Proteins: Structure, Function, and Bioinformatics (Vol. 42, Issue 4, pp. 452–459). Wiley.
 """
 hydrophobicity = Dict{Char, Float32}('C' => 137, 'I' => 106, 'V' => 108, 'L' => 103, 'F' => 108, 'M' => 73, 'W' => 69, 'A' => 51, 'T' => -3, 'G' => -13, 'Y' => 11, 'S' => -26, 'H' => -55, 'P' => -79, 'N' => -84, 'D' => -78, 'E' => -115, 'Q' => -128, 'R' => -144, 'K' => -205)
 _norm_dict!(hydrophobicity)

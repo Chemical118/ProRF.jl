@@ -8,7 +8,6 @@ AbstractRFI
 RF
 RFI
 get_data
-get_amino_loc
 get_reg_importance
 rf_importance
 rf_model

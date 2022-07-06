@@ -56,7 +56,7 @@ view_sequence("Data/jealgpdata.fasta", save=true)
 using ProRF, Printf
 
 RI = RFI("Data/jealgpdata.fasta", "Data/data.xlsx", 2:1:10, 100:10:500)
-X, Y, L = get_data(RI, 9, 'E')
+X, Y, L = get_data(RI, 2, 'D')
 
 MeZ, SdZ = iter_get_reg_value(RI, X, Y, 10, val_mode=true)
 
@@ -72,8 +72,13 @@ N_Feature, N_Tree = get_reg_value_loc(RI, MZ)
 ```julia
 using ProRF, Printf
 
+# Molecular mass of amino acid
+myDict = Dict('A' => 89, 'R' => 174, 'N' => 132, 'D' => 133, 'C' => 121, 'Q' => 146,
+'E' => 147, 'G' => 75, 'H' => 155, 'I' => 131, 'L' => 131, 'K' => 146, 'M' => 149, 
+'F' => 165, 'P' => 115, 'S' => 105, 'T' => 119, 'W' => 204, 'Y' => 181, 'V' => 117)
+
 R = RF("Data/jealgpdata.fasta", "Data/data.xlsx")
-X, Y, L = get_data(R, 9, 'E', blosum=80)
+X, Y, L = get_data(R, 2, 'D', convert=myDict)
 
 M = rf_model(X, Y, N_Feature, N_Tree)
 @printf "Total NRMSE : %.6f\n" nrmse(M, X, Y)
