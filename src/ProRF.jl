@@ -5,7 +5,7 @@ using PyCall, Random, Statistics, Printf, PyPlot, StatsBase
 using FASTX, BioAlignments, XLSX, Phylo, AxisArrays
 
 export AbstractRF, AbstractRFI, RF, RFI
-export blosum_matrix, get_data, get_amino_loc, view_mutation, view_reg3d, view_importance, view_sequence
+export get_data, get_amino_loc, view_mutation, view_reg3d, view_importance, view_sequence
 export train_test_split, nrmse, load_model, save_model, julia_isinteractive
 export get_reg_importance, iter_get_reg_importance, parallel_predict
 export get_reg_value, get_reg_value_loc, iter_get_reg_value, rf_importance, rf_model, rf_nrmse
@@ -206,15 +206,14 @@ function parallel_predict(regr::RandomForestRegressor, X::Matrix{Float32})
 end
 
 """
-    parallel_predict(regr::RandomForestRegressor, X::Matrix{Float32})
+    parallel_predict(regr::RandomForestRegressor, L::Vector{Int}, seq_vector::Vector{String}; convert::Dict{Char, Float32}=ProRF.volume)
 
 Get raw sequence vector and `L` data to make `X` data and execute `DecisionTree.predict(regr, X)` in parallel.
 """
-function parallel_predict(regr::RandomForestRegressor, L::Vector{Int}, seq_vector::Vector{String}; blosum::Int=62)
-    seq_vector = map(x -> x[map(y -> y[1], L)], seq_vector)
+function parallel_predict(regr::RandomForestRegressor, L::Vector{Int}, seq_vector::Vector{String}; convert::Dict{Char, Float32}=ProRF.volume)
+    seq_vector = map(x -> x[L], seq_vector)
 
-    blo = blosum_matrix(blosum)
-    test_vector = [[Float32(blo[tar, s]) for ((_, tar), s) in zip(L, seq)] for seq in seq_vector]
+    test_vector = [[Float32(convert[s]) for s in seq] for seq in seq_vector]
     val_vector = similar(test_vector, Float32)
     
     Threads.@threads for (ind, vec) in collect(enumerate(test_vector))
@@ -616,11 +615,11 @@ end
 
 """
     get_data(R::AbstractRF, ami_arr::Int, excel_col::Char;
-             norm::Bool=false, blosum::Int=62,
+             norm::Bool=false, convert::Dict{Char, Float32}=ProRF.volume,
              sheet::String="Sheet1", title::Bool=true)
 
     get_data(R::AbstractRF, excel_col::Char;
-             norm::Bool=false, blosum::Int=62,
+             norm::Bool=false, convert::Dict{Char, Float32}=ProRF.volume,
              sheet::String="Sheet1", title::Bool=true)
 
 # Examples
@@ -628,7 +627,7 @@ end
 julia> X, Y, L = get_data(R, 9, 'E');
 ```
 
-Get data from `.fasta` file by converting selected BLOSUM matrix and `.xlsx` file at certain sheet and column.
+Get data from `.fasta` file by converting selected dictionary and `.xlsx` file at certain sheet and column.
 
 # Arguments
 - `R::AbstractRF` : for both [`RF`](@ref) and [`RFI`](@ref).
@@ -1226,20 +1225,24 @@ end
 
 """
 Convert dictionary about molar volume of amino acid.
+
+Reference by Zamyatnin, A. A. (1972). Protein volume in solution. In Progress in Biophysics and Molecular Biology (Vol. 24, pp. 107–123). Elsevier BV.
 """
 volume = Dict{Char, Float32}('A' => 88.6, 'R' => 173.4, 'N' => 114.1, 'D' => 111.1, 'C' => 108.5, 'Q' => 143.8, 'E' => 138.4, 'G' => 60.1, 'H' => 153.2, 'I' => 166.7, 'L' => 166.7, 'K' => 168.6, 'M' => 162.9, 'F' => 189.9, 'P' => 112.7, 'S' => 89, 'T' => 116.1, 'W' => 227.8, 'Y' => 193.6, 'V' => 140)
 _norm_dict!(volume)
 
 """
-Convert dictionary about molar pI of amino acid.
+Convert dictionary about pI of amino acid.
 """
 pI = Dict{Char, Float32}('A' => 6.11, 'R' => 10.76, 'N' => 5.43, 'D' => 2.98, 'C' => 5.15, 'E' => 3.08, 'Q' => 5.65, 'G' => 6.06, 'H' => 7.64, 'I' => 6.04, 'L' => 6.04, 'K' => 9.47, 'M' => 5.71, 'F' => 5.76, 'P' => 6.30, 'S' => 5.70, 'T' => 5.60, 'W' => 5.88, 'Y' => 5.63, 'V' => 6.02)
 _norm_dict!(pI)
 
 """
-Convert dictionary about molar hydrophobicity of amino acid.
+Convert dictionary about hydrophobicity of amino acid.
+
+Reference by Naderi-Manesh, H., Sadeghi, M., Arab, S., & Moosavi Movahedi, A. A. (2001). Prediction of protein surface accessibility with information theory. In Proteins: Structure, Function, and Bioinformatics (Vol. 42, Issue 4, pp. 452–459). Wiley.
 """
-hydrophobicity = Dict{Char, Float32}('I' => 3.1, 'V' => 2.6, 'L' => 2.8, 'F' => 3.7, 'C'=> 2.0, 'M' => 3.4, 'A' => 1.6, 'G' => 1.0, 'T' => 1.2, 'S' => 0.6, 'W' => 1.2, 'Y' => -0.7, 'P' => -0.2, 'H' => -3.0, 'E' => -8.2, 'Q' => -4.1, 'D' => -9.2, 'N' => 4.8, 'K' => -8.8, 'R' => -12.3)
+hydrophobicity = Dict{Char, Float32}('C' => 137, 'I' => 106, 'V' => 108, 'L' => 103, 'F' => 108, 'M' => 73, 'W' => 69, 'A' => 51, 'T' => -3, 'G' => -13, 'Y' => 11, 'S' => -26, 'H' => -55, 'P' => -79, 'N' => -84, 'D' => -78, 'E' => -115, 'Q' => -128, 'R' => -144, 'K' => -205)
 _norm_dict!(hydrophobicity)
 
 end # module end
