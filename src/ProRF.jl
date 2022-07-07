@@ -779,9 +779,8 @@ function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64
         ylabel("Predictions")
         axis("equal")
         axis("square")
-        axis_min = max(0, minimum(Y))
-        xlim(axis_min, xlim()[2])
-        ylim(axis_min, ylim()[2])
+        xlim(-max(0, -xlim()[1]), xlim()[2])
+        ylim(-max(0, -ylim()[1]), ylim()[2])
         plot([-1000, 1000], [-1000, 1000], color="black")
         PyPlot.title("Random Forest Regression Result")
         @show_pyplot
@@ -832,9 +831,8 @@ function rf_nrmse(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
         ylabel("Predictions")
         axis("equal")
         axis("square")
-        axis_min = max(0, minimum(Y))
-        xlim(axis_min, xlim()[2])
-        ylim(axis_min, ylim()[2])
+        xlim(-max(0, -xlim()[1]), xlim()[2])
+        ylim(-max(0, -ylim()[1]), ylim()[2])
         plot([-1000, 1000], [-1000, 1000], color="black")
         @show_pyplot
         @printf "NRMSE : %.6f\n" nrmse_val
@@ -883,9 +881,8 @@ function rf_model(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
         ylabel("Predictions")
         axis("equal")
         axis("square")
-        axis_min = max(0, minimum(Y))
-        xlim(axis_min, xlim()[2])
-        ylim(axis_min, ylim()[2])
+        xlim(-max(0, -xlim()[1]), xlim()[2])
+        ylim(-max(0, -ylim()[1]), ylim()[2])
         plot([-1000, 1000], [-1000, 1000], color="black")
         @show_pyplot
         @printf "NRMSE : %.6f\n" nrmse(predict_test, y_test)
@@ -1032,7 +1029,13 @@ function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Fl
     for i in 1:iter
         f[:, i], n[i] = _iter_get_reg_importance(X, x_train, x_test, y_train, y_test, loc_list, feet, tree, imp_iter, imp_state, learn_state_vector[i])
     end
-    mf, sf = mean(f, dims=2)[:, 1], std(f, dims=2)[:, 1]
+    
+    mf = mean(f, dims=2)[:, 1]
+    if iter > 1
+        sf = std(f, dims=2)[:, 1]
+    else
+        sf = zeros(Float64, size(mf))
+    end
 
     if val_mode == false
         _iter_view_importance(mf, sf, loc_list, show_number=show_number)
@@ -1222,12 +1225,19 @@ function iter_get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float
     for i = 1:iter
         z[:, :, i] = get_reg_value(RI, X, Y, val_mode=true, test_size=test_size, data_state=data_state_vector[i], learn_state=learn_state)
     end
-
-    vz, sz = mean(z, dims=3)[:, :, 1], std(z, dims=3)[:, :, 1]
+    
+    vz = mean(z, dims=3)[:, :, 1]
+    if iter > 1
+        sz = std(z, dims=3)[:, :, 1]
+    else
+        sz = zeros(Float64, size(vz))
+    end
 
     if val_mode == false
         view_reg3d(RI, vz, title="NRMSE value", scale=2)
-        view_reg3d(RI, sz, title="NRMSE SD value", scale=3)
+        if iter > 1
+            view_reg3d(RI, sz, title="NRMSE SD value", scale=3)
+        end
     end
 
     return vz, sz
