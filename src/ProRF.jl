@@ -688,7 +688,7 @@ function _get_data(R::AbstractRF, ami_arr::Int, excel_col::Char, norm::Bool, con
         max_val = maximum(values(dict))
         if '-' ∉ keys(dict) && ami_arr ≤ data_len - max_val 
             push!(x_col_vector, [convert[i] for i in col])
-            push!(loc_vector, ind)
+            push!(loc_vector, ind + R.amino_loc - 1)
         end
     end
 
