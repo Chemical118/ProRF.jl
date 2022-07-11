@@ -52,8 +52,7 @@ ProRF.hydrophobicity
 ```@docs
 ProRF._julia_interactive
 julia_isinteractive
-ProRF.@seed_i
-ProRF.@seed_u64
+ProRF.@seed
 ProRF.@show_pyplot
 ```
 

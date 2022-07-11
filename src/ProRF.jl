@@ -10,7 +10,7 @@ export train_test_split, test_nrmse, nrmse, load_model, save_model, julia_isinte
 export get_reg_importance, iter_get_reg_importance, parallel_predict
 export get_reg_value, get_reg_value_loc, iter_get_reg_value, rf_importance, rf_model, rf_nrmse
 export data_preprocess_fill, data_preprocess_index
-export @seed_i, @seed_u64
+export @seed
 
 """
 Check julia currently running is interactive or not.
@@ -91,16 +91,9 @@ end
 # Macro defination
 
 """
-Return non-negative `Int` range integer `MersenneTwister` RNG object seed. keep in mind that when macro executed, the seed is initialized.
-"""
-macro seed_i()
-    return :(Int(rand(Random.seed!(), 0:typemax(Int))))
-end
-
-"""
 Return `UInt64` range integer `MersenneTwister` RNG object seed. keep in mind that when macro executed, the seed is initialized.
 """
-macro seed_u64()
+macro seed()
     return :(UInt64(rand(Random.seed!(), UInt64)))
 end
 
@@ -783,10 +776,10 @@ Caculate regression model and feature importance, then draw random forest result
 """
 function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{Int}, feat::Int, tree::Int;
     val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
-    data_state::UInt64=@seed_u64, learn_state::Int=@seed_i, imp_state::UInt64=@seed_u64)
+    data_state::UInt64=@seed, learn_state::Int=@seed, imp_state::UInt64=@seed)
     
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
-    regr = RandomForestRegressor(n_trees=tree, n_subfeatures=feat, min_samples_leaf=1, rng=learn_state)
+    regr = RandomForestRegressor(n_trees=tree, n_subfeatures=feat, min_samples_leaf=1, rng=learn_state, impurity_importance=false)
     DecisionTree.fit!(regr, x_train, y_train)
 
     if val_mode == false
