@@ -108,7 +108,7 @@ end
 When [`_julia_interactive`](@ref) is on, execute `display(gcf())` or [`_julia_interactive`](@ref) is off, execute `show()` and wait until the user inputs enter.
 """
 macro show_pyplot()
-    return :(if _julia_interactive == true 
+    return :(if _julia_interactive
                  display(gcf())
              else
                  show()
@@ -602,8 +602,8 @@ function data_preprocess_fill(front_ind::Int, last_ind::Int, in_fasta_loc::Strin
     edit_seq_vector = Vector{String}()
     for (ind, (front_gap_ind, last_gap_ind)) in enumerate(gap_ind_vector)
         main_seq = seq_vector[ind]
-        if isgap_vector[ind] == true
-            nogap_dis_vector = map(i -> Float64(dis_matrix_isgap_vector[i[1]] == true ? 1 : i[2]), enumerate(dis_matrix[:, id_vector[ind]]))
+        if isgap_vector[ind]
+            nogap_dis_vector = map(i -> Float64(dis_matrix_isgap_vector[i[1]] ? 1 : i[2]), enumerate(dis_matrix[:, id_vector[ind]]))
             min_target_ind = id_dict[dis_matrix_id_vector[argmin(nogap_dis_vector)]]
             min_target_seq = seq_vector[min_target_ind]
 
@@ -681,7 +681,15 @@ function _get_data(R::AbstractRF, ami_arr::Int, excel_col::Char, norm::Bool, con
         error("Please check your convert dictionary")
     end
 
-    data_len, loc_dict_vector, seq_matrix = _location_data(R.fasta_loc)
+    excel_data = DataFrame(XLSX.readtable(R.data_loc, sheet, infer_eltypes=title)...)
+    excel_select_vector = excel_data[!, Int(excel_col) - Int('A') + 1]
+    data_idx = findall(!ismissing, excel_select_vector)
+    excel_select_vector = Vector{Float64}(excel_select_vector[data_idx])
+    if norm
+        excel_select_vector = _min_max_norm(excel_select_vector)
+    end
+
+    data_len, loc_dict_vector, seq_matrix = _location_data(R.fasta_loc, data_idx)
     x_col_vector = Vector{Vector{Float64}}()
     loc_vector = Vector{Int64}()
     for (ind, (dict, col)) in enumerate(zip(loc_dict_vector, eachcol(seq_matrix)))
@@ -690,12 +698,6 @@ function _get_data(R::AbstractRF, ami_arr::Int, excel_col::Char, norm::Bool, con
             push!(x_col_vector, [convert[i] for i in col])
             push!(loc_vector, ind + R.amino_loc - 1)
         end
-    end
-
-    excel_data = DataFrame(XLSX.readtable(R.data_loc, sheet, infer_eltypes=title)...)
-    excel_select_vector = Vector{Float64}(excel_data[!, Int(excel_col) - Int('A') + 1])
-    if norm
-        excel_select_vector = _min_max_norm(excel_select_vector)
     end
     
     x = Matrix{Float64}(hcat(x_col_vector...))
@@ -706,6 +708,23 @@ end
 
 function _location_data(fasta_loc::String)
     seq_vector = [collect(FASTA.sequence(String, record)) for record in open(FASTA.Reader, fasta_loc)]
+    if length(Set(map(length, seq_vector))) ≠ 1
+        error(@sprintf "%s is not aligned, Please align your data" fasta_loc)
+    end
+    seq_matrix = permutedims(hcat(seq_vector...))
+    loc_vector = Vector{Dict{Char, Int}}()
+    for col in eachcol(seq_matrix)
+        loc_dict = Dict{Char, Int}()
+        for val in col
+            loc_dict[val] = get(loc_dict, val, 0) + 1
+        end
+        push!(loc_vector, loc_dict)
+    end
+    return size(seq_matrix)[1], loc_vector, seq_matrix
+end
+
+function _location_data(fasta_loc::String, data_idx::Vector{Int})
+    seq_vector = [collect(FASTA.sequence(String, record)) for record in open(FASTA.Reader, fasta_loc)][data_idx]
     if length(Set(map(length, seq_vector))) ≠ 1
         error(@sprintf "%s is not aligned, Please align your data" fasta_loc)
     end
