@@ -779,7 +779,7 @@ function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64
     data_state::UInt64=@seed, learn_state::UInt64=@seed, imp_state::UInt64=@seed)
     
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
-    regr = RandomForestRegressor(n_trees=tree, n_subfeatures=feat, min_samples_leaf=1, rng=learn_state, impurity_importance=false)
+    regr = RandomForestRegressor(n_trees=tree, n_subfeatures=feat, min_samples_leaf=1, rng=MersenneTwister(learn_state), impurity_importance=false)
     DecisionTree.fit!(regr, x_train, y_train)
 
     if val_mode == false
