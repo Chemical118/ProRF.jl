@@ -20,7 +20,7 @@ view_mutation
 ## Convert dictionary
 Convert dictionary for [`get_data`](@ref)
 
-|Amino acid|Molar volume \[[1](@ref Reference)\]|pI \[[2](@ref Reference)\]|Hydrophobicity \[[3](@ref Reference)\]|Frequency \[[4](@ref Reference)\]|
+|Amino acid|Molar volume \[[1](@ref Reference)\]|pI \[[2](@ref Reference)\]|Hydrophobicity \[[4](@ref Reference)\]|Frequency \[[3](@ref Reference)\]|
 |:---|:---|:---|:---|:---|
 |Alanine|88.6|6.00|51|0.0777|
 |Arginine|173.4|10.76|-144|0.0627|
@@ -62,6 +62,6 @@ ProRF.@show_pyplot
 
 \[2\] :  Lide, D. R. (Ed.). (1991). *Hdbk of chemistry & physics 72nd edition* (72nd ed.). CRC Press.
 
-\[3\] :  Zamyatnin, A. (1984). Amino Acid, Peptide, and Protein Volume in Solution. *Annual Review of Biophysics and Biomolecular Structure, 13*(1), 145–165. <https://doi.org/10.1146/annurev.biophys.13.1.145>
+\[3\] :  Naderi-Manesh, H., Sadeghi, M., Arab, S., & Moosavi Movahedi, A. A. (2001). Prediction of protein surface accessibility with information theory. *Proteins, 42*(4), 452–459. [https://doi.org/10.1002/1097-0134(20010301)42:4<452::aid-prot40>3.0.co;2-q](https://doi.org/10.1002/1097-0134(20010301)42:4<452::aid-prot40>3.0.co;2-q)
 
-\[4\] :  Naderi-Manesh, H., Sadeghi, M., Arab, S., & Moosavi Movahedi, A. A. (2001). Prediction of protein surface accessibility with information theory. *Proteins, 42*(4), 452–459. [https://doi.org/10.1002/1097-0134(20010301)42:4<452::aid-prot40>3.0.co;2-q](https://doi.org/10.1002/1097-0134(20010301)42:4<452::aid-prot40>3.0.co;2-q)
+\[4\] :  Zamyatnin, A. (1984). Amino Acid, Peptide, and Protein Volume in Solution. *Annual Review of Biophysics and Biomolecular Structure, 13*(1), 145–165. <https://doi.org/10.1146/annurev.biophys.13.1.145>
