@@ -2,7 +2,7 @@ module ProRF
 
 using ShapML, DataFrames, DecisionTree, JLD2
 using PyCall, Random, Statistics, Printf, PyPlot, StatsBase
-using FASTX, BioAlignments, XLSX, Phylo, AxisArrays
+using FASTX, BioAlignments, XLSX, Phylo, AxisArrays, AverageShiftedHistograms
 
 export AbstractRF, AbstractRFI, RF, RFI
 export get_data, view_mutation, view_reg3d, view_importance, view_sequence
@@ -731,7 +731,7 @@ end
     get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64},
                        L::Vector{Int}, feat::Int, tree::Int;
                        val_mode::Bool=false, test_size::Float64=0.3,
-                       show_number::Int=20, imp_iter::Int=60,
+                       nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
                        data_state::UInt64=@seed_u64,
                        learn_state::Int=@seed_i,
                        imp_state::UInt64=@seed_u64)
@@ -755,6 +755,7 @@ Caculate regression model and feature importance, then draw random forest result
 - `tree::Int` : number of trees.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `test_size::Float64` : size of test set.
+- `nbin::Int` : the number of bins for each two dimensions to execute kernel density estimation.
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
 - `data_state::UInt64` : seed used to split data.
@@ -762,7 +763,7 @@ Caculate regression model and feature importance, then draw random forest result
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
 function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{Int}, feat::Int, tree::Int;
-    val_mode::Bool=false, test_size::Float64=0.3, show_number::Int=20, imp_iter::Int=60,
+    val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
     data_state::UInt64=@seed_u64, learn_state::Int=@seed_i, imp_state::UInt64=@seed_u64)
     
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
@@ -770,28 +771,14 @@ function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64
     DecisionTree.fit!(regr, x_train, y_train)
 
     if val_mode == false
-        predict_test = parallel_predict(regr, x_test)
-        predict_train = parallel_predict(regr, x_train)
-        scatter(y_train, predict_train, color="orange", label="Train value")
-        scatter(y_test, predict_test, color="blue" , label="Test value")
-        legend(loc=4)
-        xlabel("True Values")
-        ylabel("Predictions")
-        axis("equal")
-        axis("square")
-        xlim(-max(0, -xlim()[1]), xlim()[2])
-        ylim(-max(0, -ylim()[1]), ylim()[2])
-        plot([-1000, 1000], [-1000, 1000], color="black")
-        PyPlot.title("Random Forest Regression Result")
-        @show_pyplot
-        @printf "NRMSE : %.6f\n" nrmse(predict_test, y_test)
+        _view_rf_result(regr, x_test, y_test, nbin)
     end
     return regr, _rf_importance(regr, DataFrame(X, string.(L)), imp_iter, seed=imp_state, show_number=show_number, val_mode=val_mode)
 end
 
 """
     rf_nrmse(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
-             val_mode::Bool=false, test_size::Float64=0.3, 
+             val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200,
              data_state::UInt64=@seed_u64, 
              learn_state::Int=@seed_i)
 
@@ -809,40 +796,26 @@ Caculate normalized root mean square error, then draw random forest result.
 - `tree::Int` : number of trees.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `test_size::Float64` : size of test set.
+- `nbin::Int` : the number of bins for each two dimensions to execute kernel density estimation.
 - `data_state::UInt64` : seed used to split data.
 - `learn_state::Int` : seed used to caculate a regression model.
 """
 function rf_nrmse(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
-    val_mode::Bool=false, test_size::Float64=0.3, data_state::UInt64=@seed_u64, learn_state::Int=@seed_i)
+    val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200, data_state::UInt64=@seed_u64, learn_state::Int=@seed_i)
 
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
     regr = RandomForestRegressor(n_trees=tree, n_subfeatures=feat, min_samples_leaf=1, rng=learn_state)
     DecisionTree.fit!(regr, x_train, y_train)
-    predict_test = parallel_predict(regr, x_test)
-    nrmse_val = nrmse(predict_test, y_test)
 
     if val_mode == false
-        predict_train = parallel_predict(regr, x_train)
-        scatter(y_train, predict_train, color="orange", label="Train value")
-        scatter(y_test, predict_test, color="blue" , label="Test value")
-        legend(loc=4)
-        PyPlot.title("Random Forest Regression Result")
-        xlabel("True Values")
-        ylabel("Predictions")
-        axis("equal")
-        axis("square")
-        xlim(-max(0, -xlim()[1]), xlim()[2])
-        ylim(-max(0, -ylim()[1]), ylim()[2])
-        plot([-1000, 1000], [-1000, 1000], color="black")
-        @show_pyplot
-        @printf "NRMSE : %.6f\n" nrmse_val
+        nrmse_val = _view_rf_result(regr, x_test, y_test, nbin)
     end
     return regr, nrmse_val
 end
 
 """
     rf_model(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
-             val_mode::Bool=false, test_size::Float64=0.3, 
+             val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200,
              data_state::UInt64=@seed_u64, 
              learn_state::Int=@seed_i)
 
@@ -860,34 +833,46 @@ Caculate regression model, then draw random forest result.
 - `tree::Int` : number of trees.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `test_size::Float64` : size of test set.
+- `nbin::Int` : the number of bins for each two dimensions to execute kernel density estimation.
 - `data_state::UInt64` : seed used to split data.
 - `learn_state::Int` : seed used to caculate a regression model.
 """
 function rf_model(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
-    val_mode::Bool=false, test_size::Float64=0.3, data_state::UInt64=@seed_u64, learn_state::Int=@seed_i)
+    val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200, data_state::UInt64=@seed_u64, learn_state::Int=@seed_i)
 
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
     regr = RandomForestRegressor(n_trees=tree, n_subfeatures=feat, min_samples_leaf=1, rng=learn_state)
     DecisionTree.fit!(regr, x_train, y_train)
 
     if val_mode == false
-        predict_test = parallel_predict(regr, x_test)
-        predict_train = parallel_predict(regr, x_train)
-        scatter(y_train, predict_train, color="orange", label="Train value")
-        scatter(y_test, predict_test, color="blue" , label="Test value")
-        legend(loc=4)
-        PyPlot.title("Random Forest Regression Result")
-        xlabel("True Values")
-        ylabel("Predictions")
-        axis("equal")
-        axis("square")
-        xlim(-max(0, -xlim()[1]), xlim()[2])
-        ylim(-max(0, -ylim()[1]), ylim()[2])
-        plot([-1000, 1000], [-1000, 1000], color="black")
-        @show_pyplot
-        @printf "NRMSE : %.6f\n" nrmse(predict_test, y_test)
+        _view_rf_result(regr, x_test, y_test, nbin)
     end
     return regr
+end
+
+function _view_rf_result(regr::RandomForestRegressor, x_test::Matrix{Float64}, y_test::Vector{Float64}, nbin::Int)
+    predict_test = parallel_predict(regr, x_test)
+    nrmse_val = nrmse(predict_test, y_test)
+    color = Vector{Float64}()
+    ke = AverageShiftedHistograms.Kernels.biweight
+    kde = ash(y_test, predict_test, nbin=nbin, kernelx=ke, kernely=ke, norm=true)
+    for (tru, val) in zip(y_test, predict_test)
+        push!(color, AverageShiftedHistograms.pdf(kde, tru, val))
+    end
+    sorted_idx = sortperm(color)
+    scatter(y_test[sorted_idx], predict_test[sorted_idx], c=color[sorted_idx], s=0.4)
+    PyPlot.title("Random Forest Regression Result")
+    xlabel("True Values")
+    ylabel("Predictions")
+    axis("equal")
+    axis("square")
+    xlim(-max(0, -xlim()[1]), xlim()[2])
+    ylim(-max(0, -ylim()[1]), ylim()[2])
+    plot([-1000, 1000], [-1000, 1000], color="black")
+    colorbar()
+    @show_pyplot
+    @printf "NRMSE : %.6f\n" nrmse_val
+    return nrmse_val
 end
 
 """

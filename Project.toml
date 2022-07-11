@@ -4,6 +4,7 @@ authors = ["Ryu Hyunwoo <wowo0118@korea.ac.kr>"]
 version = "0.1.0"
 
 [deps]
+AverageShiftedHistograms = "77b51b56-6f8f-5c3a-9cb4-d71f9594ea6e"
 AxisArrays = "39de3d68-74b9-583c-8d2d-e117c070f3a9"
 BioAlignments = "00701ae9-d1dc-5365-b64a-a3a3ebf5695e"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
