@@ -5,7 +5,7 @@ using PyCall, Random, Statistics, Printf, PyPlot, StatsBase
 using FASTX, BioAlignments, XLSX, Phylo, AxisArrays, AverageShiftedHistograms
 
 export AbstractRF, AbstractRFI, RF, RFI
-export get_data, view_mutation, view_reg3d, view_importance, view_sequence
+export get_data, view_mutation, view_reg3d, view_importance, view_sequence, view_result
 export train_test_split, test_nrmse, nrmse, load_model, save_model, julia_isinteractive
 export get_reg_importance, iter_get_reg_importance, parallel_predict
 export get_reg_value, get_reg_value_loc, iter_get_reg_value, rf_importance, rf_model, rf_nrmse
@@ -108,7 +108,7 @@ end
 When [`_julia_interactive`](@ref) is on, execute `display(gcf())` or [`_julia_interactive`](@ref) is off, execute `show()` and wait until the user inputs enter.
 """
 macro show_pyplot()
-    return :(if _julia_interactive
+    return :(if _julia_interactive == true
                  display(gcf())
              else
                  show()
@@ -183,28 +183,28 @@ function nrmse(pre::Vector{Float64}, tru::Vector{Float64})
 end
 
 """
-    nrmse(regr::RandomForestRegressor, X::Matrix{Float64}, tru::Vector{Float64})
+    test_nrmse(regr::RandomForestRegressor, X::Matrix{Float64}, Y::Vector{Float64})
 
-Compute normalized root mean square error with regression model, `X` data and true value.
+Compute normalized root mean square error with regression model, `X` and `Y` data.
 """
-function nrmse(regr::RandomForestRegressor, X::Matrix{Float64}, tru::Vector{Float64})
-    return L2dist(parallel_predict(regr, X), tru) / (maximum(tru) - minimum(tru)) / length(tru)^0.5
+function test_nrmse(regr::RandomForestRegressor, X::Matrix{Float64}, Y::Vector{Float64})
+    return L2dist(parallel_predict(regr, X), Y) / (maximum(Y) - minimum(Y)) / length(Y)^0.5
 end
 
 """
-    test_nrmse(regr::RandomForestRegressor, X::Matrix{Float64}, tru::Vector{Float64},
+    test_nrmse(regr::RandomForestRegressor, X::Matrix{Float64}, Y::Vector{Float64},
                data_state::UInt64;
                test_size::Float64=0.3, test_mode::Bool=true)
 
-Compute test or train set normalized root mean square error with regression model, `X` data, true value and seed used to split data.
+Compute test or train set normalized root mean square error with regression model, `X`, `Y` data and seed.
 """
-function test_nrmse(regr::RandomForestRegressor, X::Matrix{Float64}, tru::Vector{Float64}, data_state::UInt64; test_size::Float64=0.3, test_mode::Bool=true)
-    n = length(tru)
+function test_nrmse(regr::RandomForestRegressor, X::Matrix{Float64}, Y::Vector{Float64}, data_state::UInt64; test_size::Float64=0.3, test_mode::Bool=true)
+    n = length(Y)
     idx = shuffle(MersenneTwister(data_state), 1:n)
     ed_idx = test_mode ? view(idx, 1:floor(Int, test_size*n)) : view(idx, (floor(Int, test_size*n)+1):n)
     X = X[ed_idx, :]
-    tru = tru[ed_idx]
-    return L2dist(parallel_predict(regr, X), tru) / (maximum(tru) - minimum(tru)) / length(tru)^0.5
+    Y = Y[ed_idx]
+    return L2dist(parallel_predict(regr, X), Y) / (maximum(Y) - minimum(Y)) / length(Y)^0.5
 end
 
 """
@@ -685,7 +685,7 @@ function _get_data(R::AbstractRF, ami_arr::Int, excel_col::Char, norm::Bool, con
     excel_select_vector = excel_data[!, Int(excel_col) - Int('A') + 1]
     data_idx = findall(!ismissing, excel_select_vector)
     excel_select_vector = Vector{Float64}(excel_select_vector[data_idx])
-    if norm
+    if norm == true
         excel_select_vector = _min_max_norm(excel_select_vector)
     end
 
@@ -790,7 +790,7 @@ function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64
     DecisionTree.fit!(regr, x_train, y_train)
 
     if val_mode == false
-        _view_rf_result(regr, x_test, y_test, nbin)
+        _view_result(regr, x_test, y_test, nbin)
     end
     return regr, _rf_importance(regr, DataFrame(X, string.(L)), imp_iter, seed=imp_state, show_number=show_number, val_mode=val_mode)
 end
@@ -827,7 +827,7 @@ function rf_nrmse(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
     DecisionTree.fit!(regr, x_train, y_train)
 
     if val_mode == false
-        nrmse_val = _view_rf_result(regr, x_test, y_test, nbin)
+        nrmse_val = _view_result(regr, x_test, y_test, nbin)
     end
     return regr, nrmse_val
 end
@@ -864,15 +864,39 @@ function rf_model(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
     DecisionTree.fit!(regr, x_train, y_train)
 
     if val_mode == false
-        _view_rf_result(regr, x_test, y_test, nbin)
+        _view_result(regr, x_test, y_test, nbin)
     end
     return regr
 end
 
-function _view_rf_result(regr::RandomForestRegressor, x_test::Matrix{Float64}, y_test::Vector{Float64}, nbin::Int)
+"""
+    view_result(regr::RandomForestRegressor, X::Matrix{Float64}, Y::Vector{Float64};
+                nbin::Int=200)
+
+Draw random forest result and return normalized root mean square error with `X`, `Y` data and regression model.
+"""
+function view_result(regr::RandomForestRegressor, X::Matrix{Float64}, Y::Vector{Float64}; nbin::Int=200)
+    _view_result(regr, X, Y, nbin)
+end
+
+"""
+    view_result(regr::RandomForestRegressor, X::Matrix{Float64}, Y::Vector{Float64},
+                data_state::UInt64;
+                test_size::Float64=0.3, nbin::Int=200, test_mode::Bool=true)
+
+Draw test or train set random forest result and return normalized root mean square error with regression model, `X`, `Y` data and seed.
+"""
+function view_result(regr::RandomForestRegressor, X::Matrix{Float64}, Y::Vector{Float64}, data_state::UInt64; test_size::Float64=0.3, nbin::Int=200, test_mode::Bool=true)
+    n = length(Y)
+    idx = shuffle(MersenneTwister(data_state), 1:n)
+    ed_idx = test_mode ? view(idx, 1:floor(Int, test_size*n)) : view(idx, (floor(Int, test_size*n)+1):n)
+    _view_result(regr, X[ed_idx, :], Y[ed_idx], nbin)
+end
+
+function _view_result(regr::RandomForestRegressor, x_test::Matrix{Float64}, y_test::Vector{Float64}, nbin::Int)
     predict_test = parallel_predict(regr, x_test)
     nrmse_val = nrmse(predict_test, y_test)
-    if length(y_test) ≤ 100
+    if length(y_test) ≤ 150
         scatter(y_test, predict_test, color="#440154", s=20)
     else
         color = Vector{Float64}()

@@ -13,6 +13,7 @@ rf_importance
 rf_model
 rf_nrmse
 iter_get_reg_importance
+view_result
 view_importance
 ```
 
