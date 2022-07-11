@@ -745,7 +745,7 @@ end
                        val_mode::Bool=false, test_size::Float64=0.3,
                        nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
                        data_state::UInt64=@seed,
-                       learn_state::Int=@seed,
+                       learn_state::UInt64=@seed,
                        imp_state::UInt64=@seed)
 
 # Examples
@@ -771,12 +771,12 @@ Caculate regression model and feature importance, then draw random forest result
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
 - `data_state::UInt64` : seed used to split data.
-- `learn_state::Int` : seed used to caculate a regression model.
+- `learn_state::UInt64` : seed used to caculate a regression model.
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
 function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{Int}, feat::Int, tree::Int;
     val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
-    data_state::UInt64=@seed, learn_state::Int=@seed, imp_state::UInt64=@seed)
+    data_state::UInt64=@seed, learn_state::UInt64=@seed, imp_state::UInt64=@seed)
     
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
     regr = RandomForestRegressor(n_trees=tree, n_subfeatures=feat, min_samples_leaf=1, rng=learn_state, impurity_importance=false)
@@ -792,7 +792,7 @@ end
     rf_nrmse(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
              val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200,
              data_state::UInt64=@seed, 
-             learn_state::Int=@seed)
+             learn_state::UInt64=@seed)
 
 # Examples
 ```julia-repl
@@ -810,10 +810,10 @@ Caculate normalized root mean square error, then draw random forest result.
 - `test_size::Float64` : size of test set.
 - `nbin::Int` : the number of bins for each two dimensions to execute kernel density estimation.
 - `data_state::UInt64` : seed used to split data.
-- `learn_state::Int` : seed used to caculate a regression model.
+- `learn_state::UInt64` : seed used to caculate a regression model.
 """
 function rf_nrmse(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
-    val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200, data_state::UInt64=@seed, learn_state::Int=@seed)
+    val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200, data_state::UInt64=@seed, learn_state::UInt64=@seed)
 
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
     regr = RandomForestRegressor(n_trees=tree, n_subfeatures=feat, min_samples_leaf=1, rng=learn_state)
@@ -829,7 +829,7 @@ end
     rf_model(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
              val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200,
              data_state::UInt64=@seed, 
-             learn_state::Int=@seed)
+             learn_state::UInt64=@seed)
 
 # Examples
 ```julia-repl
@@ -847,10 +847,10 @@ Caculate regression model, then draw random forest result.
 - `test_size::Float64` : size of test set.
 - `nbin::Int` : the number of bins for each two dimensions to execute kernel density estimation.
 - `data_state::UInt64` : seed used to split data.
-- `learn_state::Int` : seed used to caculate a regression model.
+- `learn_state::UInt64` : seed used to caculate a regression model.
 """
 function rf_model(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
-    val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200, data_state::UInt64=@seed, learn_state::Int=@seed)
+    val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200, data_state::UInt64=@seed, learn_state::UInt64=@seed)
 
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
     regr = RandomForestRegressor(n_trees=tree, n_subfeatures=feat, min_samples_leaf=1, rng=learn_state)
@@ -1070,7 +1070,7 @@ function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Fl
     return mf, sf
 end
 
-function _iter_get_reg_importance(x::Matrix{Float64}, x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, loc::Vector{String}, feet::Int, tree::Int, imp_iter::Int, imp_state::UInt64, learn_state::Int)
+function _iter_get_reg_importance(x::Matrix{Float64}, x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, loc::Vector{String}, feet::Int, tree::Int, imp_iter::Int, imp_state::UInt64, learn_state::UInt64)
     regr = RandomForestRegressor(n_trees=tree, n_subfeatures=feet, min_samples_leaf=1, rng=learn_state)
     DecisionTree.fit!(regr, x_train, y_train)
     return _rf_importance(regr, DataFrame(x, loc), imp_iter, seed=imp_state, val_mode=true), nrmse(regr, x_test, y_test)
@@ -1120,7 +1120,7 @@ end
     get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64};
                   val_mode::Bool=false, test_size::Float64=0.3,
                   data_state::UInt64=@seed,
-                  learn_state::Int=@seed)
+                  learn_state::UInt64=@seed)
 
 # Examples
 ```julia-repl
@@ -1135,10 +1135,10 @@ Calculate [`nrmse`](@ref) value for each `nfeat`, `ntree` condition, then draw [
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `test_size::Float64` : size of test set.
 - `data_state::UInt64` : seed used to split data.
-- `learn_state::Int` : seed used to caculate a regression model.
+- `learn_state::UInt64` : seed used to caculate a regression model.
 """
 function get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64};
-    val_mode::Bool=false, test_size::Float64=0.3, data_state::UInt64=@seed, learn_state::Int=@seed)
+    val_mode::Bool=false, test_size::Float64=0.3, data_state::UInt64=@seed, learn_state::UInt64=@seed)
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
     z = zeros(Float64, length(RI.nfeat), length(RI.ntree))
     task = [(i[1], j[1], i[2], j[2]) for i in enumerate(RI.nfeat), j in enumerate(RI.ntree)]
@@ -1153,7 +1153,7 @@ function get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64};
     return z
 end
 
-function _get_reg_value(x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, feat::Int, tree::Int, learn_state::Int)
+function _get_reg_value(x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, feat::Int, tree::Int, learn_state::UInt64)
     regr = RandomForestRegressor(n_trees=tree, n_subfeatures=feat, min_samples_leaf=1, rng=learn_state)
     DecisionTree.fit!(regr, x_train, y_train)
     return nrmse(regr, x_test, y_test)
@@ -1223,7 +1223,7 @@ end
 """
     iter_get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64}, iter::Int;
                        val_mode::Bool=false, test_size::Float64=0.3,
-                       learn_state::Int=@seed,
+                       learn_state::UInt64=@seed,
                        data_state_seed::UInt64=@seed)
 
 # Examples
@@ -1240,11 +1240,11 @@ Returns the mean and standard deviation of [`nrmse`](@ref) value.
 - `Y::Vector{Float64}` : `Y` data.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `test_size::Float64` : size of test set.
-- `learn_state::Int` : seed used to caculate a regression model.
+- `learn_state::UInt64` : seed used to caculate a regression model.
 - `data_state_seed::UInt64` : seed used to generate seed used to split data.
 """
 function iter_get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64}, iter::Int;
-    val_mode::Bool=false, test_size::Float64=0.3, learn_state::Int=@seed, data_state_seed::UInt64=@seed)
+    val_mode::Bool=false, test_size::Float64=0.3, learn_state::UInt64=@seed, data_state_seed::UInt64=@seed)
     z = zeros(length(RI.nfeat), length(RI.ntree), iter)
     data_state_vector = Vector{UInt64}(rand(MersenneTwister(data_state_seed), UInt64, iter))
     for i = 1:iter
