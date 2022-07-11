@@ -693,7 +693,7 @@ function _get_data(R::AbstractRF, ami_arr::Int, excel_col::Char, norm::Bool, con
     end
 
     excel_data = DataFrame(XLSX.readtable(R.data_loc, sheet, infer_eltypes=title)...)
-    excel_select_vector = excel_data[!, Int(excel_col) - Int('A') + 1]
+    excel_select_vector = Vector{Float64}(excel_data[!, Int(excel_col) - Int('A') + 1])
     if norm
         excel_select_vector = _min_max_norm(excel_select_vector)
     end
@@ -853,14 +853,19 @@ end
 function _view_rf_result(regr::RandomForestRegressor, x_test::Matrix{Float64}, y_test::Vector{Float64}, nbin::Int)
     predict_test = parallel_predict(regr, x_test)
     nrmse_val = nrmse(predict_test, y_test)
-    color = Vector{Float64}()
-    ke = AverageShiftedHistograms.Kernels.biweight
-    kde = ash(y_test, predict_test, nbin=nbin, kernelx=ke, kernely=ke, norm=true)
-    for (tru, val) in zip(y_test, predict_test)
-        push!(color, AverageShiftedHistograms.pdf(kde, tru, val))
+    if length(y_test) ≤ 100
+        scatter(y_test, predict_test, color="#440154", s=20)
+    else
+        color = Vector{Float64}()
+        ke = AverageShiftedHistograms.Kernels.biweight
+        kde = ash(y_test, predict_test, nbin=nbin, kernelx=ke, kernely=ke, norm=true)
+        for (tru, val) in zip(y_test, predict_test)
+            push!(color, AverageShiftedHistograms.pdf(kde, tru, val))
+        end
+        sorted_idx = sortperm(color)
+        scatter(y_test[sorted_idx], predict_test[sorted_idx], c=color[sorted_idx], s=3)
+        colorbar()
     end
-    sorted_idx = sortperm(color)
-    scatter(y_test[sorted_idx], predict_test[sorted_idx], c=color[sorted_idx], s=0.4)
     PyPlot.title("Random Forest Regression Result")
     xlabel("True Values")
     ylabel("Predictions")
@@ -869,7 +874,6 @@ function _view_rf_result(regr::RandomForestRegressor, x_test::Matrix{Float64}, y
     xlim(-max(0, -xlim()[1]), xlim()[2])
     ylim(-max(0, -ylim()[1]), ylim()[2])
     plot([-1000, 1000], [-1000, 1000], color="black")
-    colorbar()
     @show_pyplot
     @printf "NRMSE : %.6f\n" nrmse_val
     return nrmse_val
