@@ -496,7 +496,7 @@ function data_preprocess_index(in_fasta_loc::String; target_rate::Float64=0.3, v
         push!(seq_vector, FASTA.sequence(String, record))
     end
 
-    gap_fre_vector = [Float64(get(dict, '-', 0) / data_len) for dict in loc_dict_vector]
+    gap_fre_vector = [Float64(get(dict, '-', 0.0) / data_len) for dict in loc_dict_vector]
 
     front_ind = findfirst(x -> x ≤ target_rate, gap_fre_vector)
     last_ind = findlast(x -> x ≤ target_rate, gap_fre_vector)
@@ -596,7 +596,7 @@ function data_preprocess_fill(front_ind::Int, last_ind::Int, in_fasta_loc::Strin
     for (ind, (front_gap_ind, last_gap_ind)) in enumerate(gap_ind_vector)
         main_seq = seq_vector[ind]
         if isgap_vector[ind]
-            nogap_dis_vector = map(i -> Float64(dis_matrix_isgap_vector[i[1]] ? 1 : i[2]), enumerate(dis_matrix[:, id_vector[ind]]))
+            nogap_dis_vector = map(i -> Float64(dis_matrix_isgap_vector[i[1]] ? 1.0 : i[2]), enumerate(dis_matrix[:, id_vector[ind]]))
             min_target_ind = id_dict[dis_matrix_id_vector[argmin(nogap_dis_vector)]]
             min_target_seq = seq_vector[min_target_ind]
 
@@ -995,9 +995,10 @@ function _rf_dfpredict(regr::RandomForestRegressor, x::DataFrame)
 end
 
 function _view_importance(fe::Vector{Float64}, get_loc::Vector{String}, baseline::Float64; show_number::Int=20)
-    show_number = min(length(fe), show_number)
+    data_len = length(fe)
+    show_number = min(data_len, show_number)
     sorted_idx = sortperm(fe, rev=true)
-    bar_pos = [length(sorted_idx):-1:1;] .- 0.5
+    bar_pos = collect(data_len:-1:1) .- 0.5
     barh(bar_pos[1:show_number], fe[sorted_idx][1:show_number], align="center")
     yticks(bar_pos[1:show_number], get_loc[sorted_idx][1:show_number])
     xlabel(@sprintf "|Shapley effect| (baseline = %.2f)" baseline)
@@ -1030,10 +1031,11 @@ function view_importance(R::AbstractRF, L::Vector{Int}, F::Vector{Float64}; show
 end
 
 function _view_importance(fe::Vector{Float64}, get_loc::Vector{String}; show_number::Int=20)
-    show_number = min(length(fe), show_number)
-    fe /= maximum(fe)
+    data_len = length(fe)
+    fe ./= maximum(fe)
+    show_number = min(data_len, show_number)
     sorted_idx = sortperm(fe, rev=true)
-    bar_pos = [length(sorted_idx):-1:1;] .- 0.5
+    bar_pos = collect(data_len:-1:1) .- 0.5
     barh(bar_pos[1:show_number], fe[sorted_idx][1:show_number], align="center")
     yticks(bar_pos[1:show_number], get_loc[sorted_idx][1:show_number])
     xlabel("Feature Importance")
@@ -1138,12 +1140,13 @@ function view_importance(R::AbstractRF, L::Vector{Int}, MF::Vector{Float64}, SF:
 end
 
 function _iter_view_importance(fe::Vector{Float64}, err::Vector{Float64}, loc::Vector{String}; show_number::Int=20)
-    show_number = min(length(fe), show_number)
+    data_len = length(fe)
     norm_val = maximum(fe)
-    fe /= norm_val
-    err /= norm_val
+    fe ./= norm_val
+    err ./= norm_val
+    show_number = min(data_len, show_number)
     sorted_idx = sortperm(fe, rev=true)
-    bar_pos = [length(sorted_idx):-1:1;] .- 0.5
+    bar_pos = collect(data_len:-1:1) .- 0.5
     barh(bar_pos[1:show_number], fe[sorted_idx][1:show_number], xerr=err[sorted_idx][1:show_number], align="center", capsize=2)
     yticks(bar_pos[1:show_number], loc[sorted_idx][1:show_number])
     xlabel("Feature Importance")
@@ -1250,8 +1253,8 @@ julia> view_reg3d(RI, SZ, title="NRMSE SD value", elev=120, scale=3);
 - `scale::Int` : decimal place to determine the limitation value of z axis.
 """
 function view_reg3d(RI::AbstractRFI, Z::Matrix{Float64}; title::Union{String, Nothing}=nothing, elev::Union{Real, Nothing}=nothing, azim::Union{Real, Nothing}=nothing, scale::Int=2)
-    nfeat_list = [RI.nfeat;]' .* ones(length(RI.ntree))
-    ntree_list = ones(length(RI.nfeat))' .* [RI.ntree;]
+    nfeat_list = collect(RI.nfeat)' .* ones(length(RI.ntree))
+    ntree_list = ones(length(RI.nfeat))' .* collect(RI.ntree)
     fig = figure()
     ax = fig.add_subplot(projection="3d")
     ax.view_init(elev=elev, azim=azim)
