@@ -6,7 +6,7 @@ using FASTX, BioAlignments, XLSX, Phylo, AxisArrays, AverageShiftedHistograms
 
 export AbstractRF, AbstractRFI, RF, RFI
 export get_data, view_mutation, view_reg3d, view_importance, view_sequence, view_result
-export train_test_split, test_nrmse, nrmse, load_model, save_model, julia_isinteractive
+export train_test_split, test_nrmse, nrmse, min_max_norm, load_model, save_model, julia_isinteractive
 export get_reg_importance, iter_get_reg_importance, parallel_predict
 export get_reg_value, get_reg_value_loc, iter_get_reg_value, rf_importance, rf_model, rf_nrmse
 export data_preprocess_fill, data_preprocess_index
@@ -679,7 +679,7 @@ function _get_data(R::AbstractRF, ami_arr::Int, excel_col::Char, norm::Bool, con
     data_idx = findall(!ismissing, excel_select_vector)
     excel_select_vector = Vector{Float64}(excel_select_vector[data_idx])
     if norm == true
-        excel_select_vector = _min_max_norm(excel_select_vector)
+        excel_select_vector = min_max_norm(excel_select_vector)
     end
 
     data_len, loc_dict_vector, seq_matrix = _location_data(R.fasta_loc, data_idx)
@@ -733,10 +733,15 @@ function _location_data(fasta_loc::String, data_idx::Vector{Int})
     return size(seq_matrix)[1], loc_vector, seq_matrix
 end
 
-function _min_max_norm(vec::Vector{Float64})
-    mi = minimum(vec)
-    ma = maximum(vec)
-    return [(i - mi) / (ma - mi) for i in vec]
+"""
+    min_max_norm(Y::Vector{Float64})
+
+Min-max normalization function for `Y` data.
+"""
+function min_max_norm(Y::Vector{Float64})
+    mi = minimum(Y)
+    ma = maximum(Y)
+    return [(i - mi) / (ma - mi) for i in Y]
 end
 
 """

@@ -6,6 +6,7 @@ Documentaion for `ProRF`'s useful things to perform data preprocessing or random
 train_test_split
 nrmse
 test_nrmse
+min_max_norm
 save_model
 load_model
 parallel_predict
