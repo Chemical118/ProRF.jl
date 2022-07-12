@@ -744,6 +744,9 @@ end
                        L::Vector{Int}, feat::Int, tree::Int;
                        val_mode::Bool=false, test_size::Float64=0.3,
                        nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
+                       max_depth::Int=-1,
+                       min_samples_leaf::Int=1,
+                       min_samples_split::Int=2,
                        data_state::UInt64=@seed,
                        learn_state::UInt64=@seed,
                        imp_state::UInt64=@seed)
@@ -770,16 +773,20 @@ Caculate regression model and feature importance, then draw random forest result
 - `nbin::Int` : the number of bins for each two dimensions to execute kernel density estimation.
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
+- `max_depth::Int` : maximum depth of the tree.
+- `min_samples_leaf::Int` : minimum number of samples required to be at a leaf node.
+- `min_samples_split::Int` : minimum number of samples required to split an internal node.
 - `data_state::UInt64` : seed used to split data.
 - `learn_state::UInt64` : seed used to caculate a regression model.
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
 function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{Int}, feat::Int, tree::Int;
     val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
+    max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
     data_state::UInt64=@seed, learn_state::UInt64=@seed, imp_state::UInt64=@seed)
     
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
-    regr = _randomforestregressor(feat, tree, learn_state)
+    regr = _randomforestregressor(feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
     DecisionTree.fit!(regr, x_train, y_train)
 
     if val_mode == false
@@ -791,6 +798,9 @@ end
 """
     rf_nrmse(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
              val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200,
+             max_depth::Int=-1,
+             min_samples_leaf::Int=1,
+             min_samples_split::Int=2,
              data_state::UInt64=@seed, 
              learn_state::UInt64=@seed)
 
@@ -809,18 +819,25 @@ Caculate normalized root mean square error, then draw random forest result.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `test_size::Float64` : size of test set.
 - `nbin::Int` : the number of bins for each two dimensions to execute kernel density estimation.
+- `max_depth::Int` : maximum depth of the tree.
+- `min_samples_leaf::Int` : minimum number of samples required to be at a leaf node.
+- `min_samples_split::Int` : minimum number of samples required to split an internal node.
 - `data_state::UInt64` : seed used to split data.
 - `learn_state::UInt64` : seed used to caculate a regression model.
 """
 function rf_nrmse(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
-    val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200, data_state::UInt64=@seed, learn_state::UInt64=@seed)
+    val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200,
+    max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
+    data_state::UInt64=@seed, learn_state::UInt64=@seed)
 
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
-    regr = _randomforestregressor(feat, tree, learn_state)
+    regr = _randomforestregressor(feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
     DecisionTree.fit!(regr, x_train, y_train)
 
     if val_mode == false
         nrmse_val = _view_result(regr, x_test, y_test, nbin)
+    else
+        nrmse_val = test_nrmse(regr, X, Y, data_state, test_size=test_size, test_mode=true)
     end
     return regr, nrmse_val
 end
@@ -828,6 +845,9 @@ end
 """
     rf_model(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
              val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200,
+             max_depth::Int=-1,
+             min_samples_leaf::Int=1,
+             min_samples_split::Int=2,
              data_state::UInt64=@seed, 
              learn_state::UInt64=@seed)
 
@@ -846,14 +866,19 @@ Caculate regression model, then draw random forest result.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `test_size::Float64` : size of test set.
 - `nbin::Int` : the number of bins for each two dimensions to execute kernel density estimation.
+- `max_depth::Int` : maximum depth of the tree.
+- `min_samples_leaf::Int` : minimum number of samples required to be at a leaf node.
+- `min_samples_split::Int` : minimum number of samples required to split an internal node.
 - `data_state::UInt64` : seed used to split data.
 - `learn_state::UInt64` : seed used to caculate a regression model.
 """
 function rf_model(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
-    val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200, data_state::UInt64=@seed, learn_state::UInt64=@seed)
+    val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200,
+    max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
+    data_state::UInt64=@seed, learn_state::UInt64=@seed)
 
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
-    regr = _randomforestregressor(feat, tree, learn_state)
+    regr = _randomforestregressor(feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
     DecisionTree.fit!(regr, x_train, y_train)
 
     if val_mode == false
@@ -1018,7 +1043,11 @@ end
                             feat::Int, tree::Int, iter::Int;
                             val_mode::Bool=false, test_size::Float64=0.3,
                             show_number::Int=20, imp_iter::Int=60,
-                            data_state::UInt64=@seed, imp_state::UInt64=@seed)
+                            max_depth::Int=-1,
+                            min_samples_leaf::Int=1,
+                            min_samples_split::Int=2,
+                            data_state::UInt64=@seed,
+                            imp_state::UInt64=@seed)
 
 # Examples
 ```julia-repl
@@ -1039,12 +1068,16 @@ Returns the mean and standard deviation of feature importance.
 - `test_size::Float64` : size of test set.
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
+- `max_depth::Int` : maximum depth of the tree.
+- `min_samples_leaf::Int` : minimum number of samples required to be at a leaf node.
+- `min_samples_split::Int` : minimum number of samples required to split an internal node.
 - `data_state::UInt64` : seed used to split data.
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 - `learn_state_seed::UInt64` : seed used to generate seed used to caculate a regression model.
 """
 function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{Int}, feat::Int, tree::Int, iter::Int;
     val_mode::Bool=false, test_size::Float64=0.3, show_number::Int=20, imp_iter::Int=60,
+    max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
     data_state::UInt64=@seed, imp_state::UInt64=@seed, learn_state_seed::UInt64=@seed)
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
     f = zeros(length(L), iter)
@@ -1052,7 +1085,7 @@ function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Fl
     loc_list = string.(L)
     learn_state_vector = Vector{Int}(rand(MersenneTwister(learn_state_seed), 0:typemax(Int), iter))
     for i in 1:iter
-        f[:, i], n[i] = _iter_get_reg_importance(X, x_train, x_test, y_train, y_test, loc_list, feat, tree, imp_iter, imp_state, learn_state_vector[i])
+        f[:, i], n[i] = _iter_get_reg_importance(X, x_train, x_test, y_train, y_test, loc_list, feat, tree, imp_iter, max_depth, min_samples_leaf, min_samples_split, imp_state, learn_state_vector[i])
     end
     
     mf = mean(f, dims=2)[:, 1]
@@ -1070,10 +1103,10 @@ function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Fl
     return mf, sf
 end
 
-function _iter_get_reg_importance(x::Matrix{Float64}, x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, loc::Vector{String}, feat::Int, tree::Int, imp_iter::Int, imp_state::UInt64, learn_state::UInt64)
-    regr = _randomforestregressor(feat, tree, learn_state)
+function _iter_get_reg_importance(X::Matrix{Float64}, x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, loc::Vector{String}, feat::Int, tree::Int, imp_iter::Int, max_depth::Int, min_samples_leaf::Int, min_samples_split::Int, imp_state::UInt64, learn_state::UInt64)
+    regr = _randomforestregressor(feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
     DecisionTree.fit!(regr, x_train, y_train)
-    return _rf_importance(regr, DataFrame(x, loc), imp_iter, seed=imp_state, val_mode=true), test_nrmse(regr, x_test, y_test)
+    return _rf_importance(regr, DataFrame(X, loc), imp_iter, seed=imp_state, val_mode=true), test_nrmse(regr, x_test, y_test)
 end
 
 """
@@ -1119,6 +1152,9 @@ end
 """
     get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64};
                   val_mode::Bool=false, test_size::Float64=0.3,
+                  max_depth::Int=-1,
+                  min_samples_leaf::Int=1,
+                  min_samples_split::Int=2,
                   data_state::UInt64=@seed,
                   learn_state::UInt64=@seed)
 
@@ -1134,17 +1170,22 @@ Calculate [`nrmse`](@ref) value for each `nfeat`, `ntree` condition, then draw [
 - `Y::Vector{Float64}` : `Y` data.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `test_size::Float64` : size of test set.
+- `max_depth::Int` : maximum depth of the tree.
+- `min_samples_leaf::Int` : minimum number of samples required to be at a leaf node.
+- `min_samples_split::Int` : minimum number of samples required to split an internal node.
 - `data_state::UInt64` : seed used to split data.
 - `learn_state::UInt64` : seed used to caculate a regression model.
 """
 function get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64};
-    val_mode::Bool=false, test_size::Float64=0.3, data_state::UInt64=@seed, learn_state::UInt64=@seed)
+    val_mode::Bool=false, test_size::Float64=0.3,
+    max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
+    data_state::UInt64=@seed, learn_state::UInt64=@seed)
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
     z = zeros(Float64, length(RI.nfeat), length(RI.ntree))
     task = [(i[1], j[1], i[2], j[2]) for i in enumerate(RI.nfeat), j in enumerate(RI.ntree)]
     
     Threads.@threads for (i, j, feat, tree) in task
-        z[i,  j] = _get_reg_value(x_train, x_test, y_train, y_test, feat, tree, learn_state)
+        z[i,  j] = _get_reg_value(x_train, x_test, y_train, y_test, feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
     end
 
     if val_mode == false
@@ -1153,8 +1194,8 @@ function get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64};
     return z
 end
 
-function _get_reg_value(x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, feat::Int, tree::Int, learn_state::UInt64)
-    regr = _randomforestregressor(feat, tree, learn_state)
+function _get_reg_value(x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, feat::Int, tree::Int, max_depth::Int, min_samples_leaf::Int, min_samples_split::Int, learn_state::UInt64)
+    regr = _randomforestregressor(feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
     DecisionTree.fit!(regr, x_train, y_train)
     return test_nrmse(regr, x_test, y_test)
 end
@@ -1223,6 +1264,9 @@ end
 """
     iter_get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64}, iter::Int;
                        val_mode::Bool=false, test_size::Float64=0.3,
+                       max_depth::Int=-1,
+                       min_samples_leaf::Int=1,
+                       min_samples_split::Int=2,
                        learn_state::UInt64=@seed,
                        data_state_seed::UInt64=@seed)
 
@@ -1240,6 +1284,9 @@ Returns the mean and standard deviation of [`nrmse`](@ref) value.
 - `Y::Vector{Float64}` : `Y` data.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `test_size::Float64` : size of test set.
+- `max_depth::Int` : maximum depth of the tree.
+- `min_samples_leaf::Int` : minimum number of samples required to be at a leaf node.
+- `min_samples_split::Int` : minimum number of samples required to split an internal node.
 - `learn_state::UInt64` : seed used to caculate a regression model.
 - `data_state_seed::UInt64` : seed used to generate seed used to split data.
 """
@@ -1268,8 +1315,8 @@ function iter_get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float
     return vz, sz
 end
 
-function _randomforestregressor(feat::Int, tree::Int, learn_state::UInt64)
-    return RandomForestRegressor(n_trees=tree, n_subfeatures=feat, min_samples_leaf=1, rng=MersenneTwister(learn_state), impurity_importance=false)
+function _randomforestregressor(feat::Int, tree::Int, max_depth::Int, min_samples_leaf::Int, min_samples_split::Int, learn_state::UInt64)
+    return RandomForestRegressor(n_trees=tree, n_subfeatures=feat, max_depth=max_depth, min_samples_leaf=min_samples_leaf, min_samples_split=min_samples_split, rng=MersenneTwister(learn_state), impurity_importance=false)
 end
 
 # Convert dictionary
