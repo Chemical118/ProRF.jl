@@ -734,14 +734,14 @@ function _location_data(fasta_loc::String, data_idx::Vector{Int})
 end
 
 """
-    min_max_norm(Y::Vector{Float64})
+    min_max_norm(data::Vector{Float64})
 
-Min-max normalization function for `Y` data.
+Min-max normalization function.
 """
-function min_max_norm(Y::Vector{Float64})
-    mi = minimum(Y)
-    ma = maximum(Y)
-    return [(i - mi) / (ma - mi) for i in Y]
+function min_max_norm(data::Vector{Float64})
+    mi = minimum(data)
+    ma = maximum(data)
+    return [(i - mi) / (ma - mi) for i in data]
 end
 
 """
