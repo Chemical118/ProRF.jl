@@ -893,7 +893,7 @@ function _view_result(regr::RandomForestRegressor, x_test::Matrix{Float64}, y_te
         scatter(y_test, predict_test, color="#440154", s=20)
     else
         color = Vector{Float64}()
-        ke = AverageShiftedHistograms.Kernels.biweight
+        ke = AverageShiftedHistograms.Kernels.gaussian
         kde = ash(y_test, predict_test, nbin=nbin, kernelx=ke, kernely=ke, norm=true)
         for (tru, val) in zip(y_test, predict_test)
             push!(color, AverageShiftedHistograms.pdf(kde, tru, val))
