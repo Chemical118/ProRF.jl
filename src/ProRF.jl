@@ -1254,7 +1254,7 @@ function get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64};
     z = zeros(Float64, length(RI.nfeat), length(RI.ntree))
     task = [(i[1], j[1], i[2], j[2]) for i in enumerate(RI.nfeat), j in enumerate(RI.ntree)]
     
-    Threads.@threads for (i, j, feat, tree) in task
+    for (i, j, feat, tree) in task
         z[i,  j] = _get_reg_value(x_train, x_test, y_train, y_test, feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
     end
 
