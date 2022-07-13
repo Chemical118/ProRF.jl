@@ -32,6 +32,8 @@ Supertype for [`RFI`](@ref).
 abstract type AbstractRFI <: AbstractRF end
 
 """
+    RF(dataset_loc::String)
+
     RF(fasta_loc::String, data_loc::String)
 
     RF(fasta_loc::String, data_loc::String, amino_loc::Union{Int, Vector{Int}})
@@ -43,6 +45,7 @@ julia> R = RF("Data/rgpdata.fasta", "Data/rdata.xlsx");
 ```
 
 # Fields
+- `dataset_loc::String` : location of dataset, `.fasta`, `.xlsx` file name must be `data`. Also, you can designate `amino_loc` through `index.txt`. See [example](https://github.com/Chemical118/ProRF_example/tree/master/Data) folder.
 - `fasta_loc::String` : location of `.fasta` file.
 - `data_loc::String` : location of `.xlsx` file.
 - `amino_loc::Union{Int, Vector{Int}}` : start index or total index for amino acid (when value is not determined, set to 1).
@@ -54,6 +57,9 @@ struct RF <: AbstractRF
 end
 
 """
+    RFI(dataset_loc::String,
+        nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64}))
+
     RFI(fasta_loc::String, data_loc::String, amino_loc::Union{Int, Vector{Int}}
         nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64})
     
@@ -67,6 +73,7 @@ julia> RI = RFI("Data/rgpdata.fasta", "Data/rdata.xlsx", 2:1:10, 100:10:500);
 ```
 
 # Fields
+- `dataset_loc::String` : location of dataset, `.fasta`, `.xlsx` file name must be `data`. Also, you can designate `amino_loc` through `index.txt`. See [example](https://github.com/Chemical118/ProRF_example/tree/master/Data) folder.
 - `fasta_loc::String` : location of `.fasta` file.
 - `data_loc::String` : location of `.xlsx` file.
 - `amino_loc::Union{Int, Vector{Int}}` : start index or total index for amino acid (when value is not determined, set to 1).
@@ -81,8 +88,40 @@ struct RFI <: AbstractRFI
     ntree::StepRange{Int64, Int64}
 end
 
+function RF(dataset_loc::String)
+    l = replace(dataset_loc, "\\" => "/")
+    if isfile(l * "/index.txt")
+        open(l * "/index.txt") do f
+            index_str = readlines(f)[1]
+            if ',' ∈ index_str
+                return RF(l * "/data.fasta", l * "/data.xlsx", parse.(Int, split(index_str, ',')))
+            else
+                return RF(l * "/data.fasta", l * "/data.xlsx", parse(Int, index_str))
+            end
+        end
+    else
+        return RF(l * "/data.fasta", l * "/data.xlsx", 1)
+    end
+end
+
 function RF(fasta_loc::String, data_loc::String)
     return RF(fasta_loc, data_loc, 1)
+end
+
+function RFI(dataset_loc::String)
+    l = replace(dataset_loc, "\\" => "/")
+    if isfile(l * "/index.txt")
+        open(l * "/index.txt") do f
+            index_str = readlines(f)[1]
+            if ',' ∈ index_str
+                return RFI(l * "/data.fasta", l * "/data.xlsx", parse.(Int, split(index_str, ',')))
+            else
+                return RFI(l * "/data.fasta", l * "/data.xlsx", parse(Int, index_str))
+            end
+        end
+    else
+        return RFI(l * "/data.fasta", l * "/data.xlsx", 1)
+    end
 end
 
 function RFI(fasta_loc::String, data_loc::String, nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64})
