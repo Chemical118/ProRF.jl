@@ -114,13 +114,13 @@ function RFI(dataset_loc::String)
         open(l * "/index.txt") do f
             index_str = readlines(f)[1]
             if ',' ∈ index_str
-                return RFI(l * "/data.fasta", l * "/data.xlsx", parse.(Int, split(index_str, ',')))
+                return RFI(l * "/data.fasta", l * "/data.xlsx", parse.(Int, split(index_str, ',')), nfeat, ntree)
             else
-                return RFI(l * "/data.fasta", l * "/data.xlsx", parse(Int, index_str))
+                return RFI(l * "/data.fasta", l * "/data.xlsx", parse(Int, index_str), nfeat, ntree)
             end
         end
     else
-        return RFI(l * "/data.fasta", l * "/data.xlsx", 1)
+        return RFI(l * "/data.fasta", l * "/data.xlsx", 1, nfeat, ntree)
     end
 end
 
