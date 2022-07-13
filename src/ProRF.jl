@@ -33,7 +33,8 @@ abstract type AbstractRFI <: AbstractRF end
 
 """
     RF(fasta_loc::String, data_loc::String)
-    RF(fasta_loc::String, data_loc::String, amino_loc::Int)
+
+    RF(fasta_loc::String, data_loc::String, amino_loc::Union{Int, Vector{Int}})
 
 struct for Main Random Forest
 # Examples
@@ -44,19 +45,19 @@ julia> R = RF("Data/rgpdata.fasta", "Data/rdata.xlsx");
 # Fields
 - `fasta_loc::String` : location of `.fasta` file.
 - `data_loc::String` : location of `.xlsx` file.
-- `amino_loc::Int` : start index for substring (when value is not determined, set to 1).
+- `amino_loc::Union{Int, Vector{Int}}` : start index or total index for amino acid (when value is not determined, set to 1).
 """
 struct RF <: AbstractRF
     fasta_loc::String
     data_loc::String
-    amino_loc::Int
+    amino_loc::Union{Int, Vector{Int}}
 end
 
 """
-    RFI(fasta_loc::String, data_loc::String,
+    RFI(fasta_loc::String, data_loc::String, amino_loc::Union{Int, Vector{Int}}
         nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64})
     
-    RFI(fasta_loc::String, data_loc::String, amino_loc::Int,
+    RFI(fasta_loc::String, data_loc::String, amino_loc::Union{Int, Vector{Int}}
         nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64})
 
 struct for Random Forest Iteration.
@@ -68,14 +69,14 @@ julia> RI = RFI("Data/rgpdata.fasta", "Data/rdata.xlsx", 2:1:10, 100:10:500);
 # Fields
 - `fasta_loc::String` : location of `.fasta` file.
 - `data_loc::String` : location of `.xlsx` file.
-- `amino_loc::Int` : start index for substring (when value is not determined, set to 1).
+- `amino_loc::Union{Int, Vector{Int}}` : start index or total index for amino acid (when value is not determined, set to 1).
 - `nfeat::StepRange{Int64, Int64}` : range of the number of selected features.
 - `ntree::StepRange{Int64, Int64}` : range of the number of trees.
 """
 struct RFI <: AbstractRFI
     fasta_loc::String
     data_loc::String
-    amino_loc::Int
+    amino_loc::Union{Int, Vector{Int}}
     nfeat::StepRange{Int64, Int64}
     ntree::StepRange{Int64, Int64}
 end
@@ -684,12 +685,27 @@ function _get_data(R::AbstractRF, ami_arr::Int, excel_col::Char, norm::Bool, con
 
     data_len, loc_dict_vector, seq_matrix = _location_data(R.fasta_loc, data_idx)
     x_col_vector = Vector{Vector{Float64}}()
-    loc_vector = Vector{Int64}()
-    for (ind, (dict, col)) in enumerate(zip(loc_dict_vector, eachcol(seq_matrix)))
-        max_val = maximum(values(dict))
-        if '-' ∉ keys(dict) && ami_arr ≤ data_len - max_val 
-            push!(x_col_vector, [convert[i] for i in col])
-            push!(loc_vector, ind + R.amino_loc - 1)
+    loc_vector = Vector{Int}()
+    if R.amino_loc isa Int
+        for (ind, (dict, col)) in enumerate(zip(loc_dict_vector, eachcol(seq_matrix)))
+            max_val = maximum(values(dict))
+            if '-' ∉ keys(dict) && ami_arr ≤ data_len - max_val 
+                push!(x_col_vector, [convert[i] for i in col])
+                push!(loc_vector, ind + R.amino_loc - 1)
+            end
+        end
+    else
+        for (dict, col) in zip(loc_dict_vector, eachcol(seq_matrix))
+            max_val = maximum(values(dict))
+            if '-' ∉ keys(dict) && ami_arr ≤ data_len - max_val 
+                push!(x_col_vector, [convert[i] for i in col])
+            end
+        end
+
+        if length(R.amino_loc) == length(x_col_vector)
+            loc_vector = R.amino_loc
+        else
+            error("Please check your location vector")
         end
     end
     
