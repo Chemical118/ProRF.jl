@@ -1354,11 +1354,12 @@ Returns the mean and standard deviation of [`nrmse`](@ref) value.
 - `data_state_seed::UInt64` : seed used to generate seed used to split data.
 """
 function iter_get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64}, iter::Int;
+    max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
     val_mode::Bool=false, test_size::Float64=0.3, learn_state::UInt64=@seed, data_state_seed::UInt64=@seed)
     z = zeros(length(RI.nfeat), length(RI.ntree), iter)
     data_state_vector = Vector{UInt64}(rand(MersenneTwister(data_state_seed), UInt64, iter))
     for i = 1:iter
-        z[:, :, i] = get_reg_value(RI, X, Y, val_mode=true, test_size=test_size, data_state=data_state_vector[i], learn_state=learn_state)
+        z[:, :, i] = get_reg_value(RI, X, Y, val_mode=true, max_depth=max_depth, min_samples_leaf=min_samples_leaf, min_samples_split=min_samples_split, test_size=test_size, data_state=data_state_vector[i], learn_state=learn_state)
     end
     
     vz = mean(z, dims=3)[:, :, 1]
