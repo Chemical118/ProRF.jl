@@ -108,7 +108,7 @@ function RF(fasta_loc::String, data_loc::String)
     return RF(fasta_loc, data_loc, 1)
 end
 
-function RFI(dataset_loc::String)
+function RFI(dataset_loc::String, nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64})
     l = replace(dataset_loc, "\\" => "/")
     if isfile(l * "/index.txt")
         open(l * "/index.txt") do f
