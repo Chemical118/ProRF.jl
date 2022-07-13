@@ -57,10 +57,13 @@ struct RF <: AbstractRF
 end
 
 """
+    RFI(R::AbstractRF,
+        nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64})
+
     RFI(dataset_loc::String,
         nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64}))
 
-    RFI(fasta_loc::String, data_loc::String, amino_loc::Union{Int, Vector{Int}}
+    RFI(fasta_loc::String, data_loc::String,
         nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64})
     
     RFI(fasta_loc::String, data_loc::String, amino_loc::Union{Int, Vector{Int}}
@@ -106,6 +109,10 @@ end
 
 function RF(fasta_loc::String, data_loc::String)
     return RF(fasta_loc, data_loc, 1)
+end
+
+function RFI(R::AbstractRF, nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64})
+    return RFI(R.fasta_loc, R.data_loc, R.amino_loc, nfeat, ntree)
 end
 
 function RFI(dataset_loc::String, nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64})
