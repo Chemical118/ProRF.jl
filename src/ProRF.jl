@@ -1041,11 +1041,12 @@ function _rf_importance(regr::RandomForestRegressor, dx::DataFrame, iter::Int=60
     data_shap = ShapML.shap(explain = dx,
                     model = regr,
                     predict_function = _rf_dfpredict,
+                    parallel = :features,
                     sample_size = iter,
                     seed = seed)
     data_plot = combine(groupby(data_shap, :feature_name), :shap_effect => x -> mean(abs.(x)))
     baseline = data_shap.intercept[1]
-    feature_importance = data_plot[!, :shap_effect_function] / baseline
+    feature_importance = data_plot[!, :shap_effect_function] ./ abs(baseline)
     if val_mode == false
         _view_importance(feature_importance, data_plot[!, :feature_name], baseline, show_number=show_number)
     end
