@@ -58,16 +58,16 @@ end
 
 """
     RFI(R::AbstractRF,
-        nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64})
+        nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
 
     RFI(dataset_loc::String,
-        nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64}))
+        nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int}))
 
     RFI(fasta_loc::String, data_loc::String,
-        nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64})
+        nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
     
     RFI(fasta_loc::String, data_loc::String, amino_loc::Union{Int, Vector{Int}}
-        nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64})
+        nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
 
 struct for Random Forest Iteration.
 # Examples
@@ -80,15 +80,15 @@ julia> RI = RFI("Data/rgpdata.fasta", "Data/rdata.xlsx", 2:1:10, 100:10:500);
 - `fasta_loc::String` : location of `.fasta` file.
 - `data_loc::String` : location of `.xlsx` file.
 - `amino_loc::Union{Int, Vector{Int}}` : start index or total index for amino acid (when value is not determined, set to 1).
-- `nfeat::StepRange{Int64, Int64}` : range of the number of selected features.
-- `ntree::StepRange{Int64, Int64}` : range of the number of trees.
+- `nfeat::StepRange{Int, Int}` : range of the number of selected features.
+- `ntree::StepRange{Int, Int}` : range of the number of trees.
 """
 struct RFI <: AbstractRFI
     fasta_loc::String
     data_loc::String
     amino_loc::Union{Int, Vector{Int}}
-    nfeat::StepRange{Int64, Int64}
-    ntree::StepRange{Int64, Int64}
+    nfeat::StepRange{Int, Int}
+    ntree::StepRange{Int, Int}
 end
 
 function RF(dataset_loc::String)
@@ -111,11 +111,11 @@ function RF(fasta_loc::String, data_loc::String)
     return RF(fasta_loc, data_loc, 1)
 end
 
-function RFI(R::AbstractRF, nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64})
+function RFI(R::AbstractRF, nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
     return RFI(R.fasta_loc, R.data_loc, R.amino_loc, nfeat, ntree)
 end
 
-function RFI(dataset_loc::String, nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64})
+function RFI(dataset_loc::String, nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
     l = replace(dataset_loc, "\\" => "/")
     if isfile(l * "/index.txt")
         open(l * "/index.txt") do f
@@ -131,7 +131,7 @@ function RFI(dataset_loc::String, nfeat::StepRange{Int64, Int64}, ntree::StepRan
     end
 end
 
-function RFI(fasta_loc::String, data_loc::String, nfeat::StepRange{Int64, Int64}, ntree::StepRange{Int64, Int64})
+function RFI(fasta_loc::String, data_loc::String, nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
     return RFI(fasta_loc, data_loc, 1, nfeat, ntree)
 end
 
@@ -810,7 +810,8 @@ end
     get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64},
                        L::Vector{Int}, feat::Int, tree::Int;
                        val_mode::Bool=false, test_size::Float64=0.3,
-                       nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
+                       nbin::Int=200, show_number::Int=20,
+                       imp_iter::Int=60, imp_rate::Float64=0.1,
                        max_depth::Int=-1,
                        min_samples_leaf::Int=1,
                        min_samples_split::Int=2,
@@ -840,6 +841,7 @@ Caculate regression model and feature importance, then draw random forest result
 - `nbin::Int` : the number of bins for each two dimensions to execute kernel density estimation.
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
+- `imp_rate::Float64` : ratio of `X` data to calculate a feature importance.
 - `max_depth::Int` : maximum depth of the tree.
 - `min_samples_leaf::Int` : minimum number of samples required to be at a leaf node.
 - `min_samples_split::Int` : minimum number of samples required to split an internal node.
@@ -848,7 +850,7 @@ Caculate regression model and feature importance, then draw random forest result
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
 function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{Int}, feat::Int, tree::Int;
-    val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
+    val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200, show_number::Int=20, imp_iter::Int=60, imp_rate::Float64=0.1,
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
     data_state::UInt64=@seed, learn_state::UInt64=@seed, imp_state::UInt64=@seed)
     
@@ -859,6 +861,15 @@ function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64
     if val_mode == false
         _view_result(regr, x_test, y_test, nbin)
     end
+
+    if length(L) ≥ 150
+        n = length(L)
+        idx = shuffle(MersenneTwister(imp_state), 1:n)
+        edit_idx = view(idx, 1:floor(Int, (n - 150) * imp_rate + 150))
+        X = X[edit_idx, :]
+        L = L[edit_idx]
+    end
+
     return regr, _rf_importance(regr, DataFrame(X, string.(L)), imp_iter, seed=imp_state, show_number=show_number, val_mode=val_mode)
 end
 
@@ -1011,7 +1022,8 @@ end
     rf_importance(R::AbstractRF, regr::RandomForestRegressor,
                   X::Matrix{Float64}, L::Vector{Int};
                   val_mode::Bool=false,
-                  show_number::Int=20, imp_iter::Int=60,
+                  show_number::Int=20,
+                  imp_iter::Int=60, imp_rate::Float64=0.1,
                   imp_state::UInt64=@seed)
     
 # Examples
@@ -1029,10 +1041,18 @@ Caculate feature importance for a target model, then draw feature importance lis
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
+- `imp_rate::Float64` : ratio of `X` data to calculate a feature importance.
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
 function rf_importance(R::AbstractRF, regr::RandomForestRegressor, X::Matrix{Float64}, L::Vector{Int};
-    val_mode::Bool=false, show_number::Int=20, imp_iter::Int=60, imp_state::UInt64=@seed)
+    val_mode::Bool=false, show_number::Int=20, imp_iter::Int=60, imp_rate::Float64=0.1, imp_state::UInt64=@seed)
+    if length(L) ≥ 150
+        n = length(L)
+        idx = shuffle(MersenneTwister(imp_state), 1:n)
+        edit_idx = view(idx, 1:floor(Int, (n - 150) * imp_rate + 150))
+        X = X[edit_idx, :]
+        L = L[edit_idx]
+    end
     return _rf_importance(regr, DataFrame(X, string.(L)), imp_iter, seed=imp_state, val_mode=val_mode, show_number=show_number)
 end
 
