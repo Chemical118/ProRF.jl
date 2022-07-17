@@ -23,7 +23,7 @@ jobs:
       - name: Install docker image
         run: docker pull julia:latest
       - name: Update ProRF.jl module
-        run: docker run --name ProRF ghcr.io/chemical118/prorf:latest julia -e 'using Pkg; Pkg.update()'
+        run: docker run --name ProRF ghcr.io/chemical118/prorf:latest julia -e 'using Pkg; Pkg.add(url="https://github.com/Chemical118/ProRF.jl")'
       - name: Update image with new docker container
         run: |
           docker stop ProRF -t 0
