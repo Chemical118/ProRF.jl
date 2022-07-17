@@ -1,0 +1,33 @@
+name: Upload ghcr.io
+
+on:
+  push:
+    branches:
+      - master
+    tags: '*'
+  pull_request:
+
+jobs:
+  build:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Login ghcr.io
+      - uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install docker image
+        run: | 
+          docker pull ghcr.io/chemical118/prorf:latest
+          docker run -i -t --name ProRF ghcr.io/chemical118/prorf:latest
+      - name: Updated ProRF.jl module
+        run: julia -e 'using Pkg; Pkg.update()'
+      - name: Update image with new docker container
+        run: |
+          docker stop ProRF -t 0
+          docker commit -a "Hyunwoo Ryu" -m "ProRF.jl update" ProRF ghcr.io/chemical118/prorf:latest
+      - name: Push updated image
+        run: docker push ghcr.io/chemical118/prorf:latest
