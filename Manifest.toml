@@ -34,7 +34,7 @@ version = "0.8.2"
 
 [[deps.AverageShiftedHistograms]]
 deps = ["LinearAlgebra", "RecipesBase", "Statistics", "StatsBase", "UnicodePlots"]
-git-tree-sha1 = "fd903fd89dfaaa98c484fa4f3b4635081b157ac1"
+git-tree-sha1 = "32a53fe0ab37b99f0f08a6ad67441cd4e05028b1"
 repo-rev = "master"
 repo-url = "https://github.com/Chemical118/AverageShiftedHistograms.jl"
 uuid = "77b51b56-6f8f-5c3a-9cb4-d71f9594ea6e"
