@@ -1,4 +1,4 @@
-name: Upload ghcr.io
+name: Update ghcr.io image
 
 on:
   push:
@@ -22,7 +22,7 @@ jobs:
       - name: Install docker image
         run: | 
           docker pull ghcr.io/chemical118/prorf:latest
-          docker run -i -t --name ProRF ghcr.io/chemical118/prorf:latest
+          docker run --name ProRF ghcr.io/chemical118/prorf:latest
       - name: Updated ProRF.jl module
         run: julia -e 'using Pkg; Pkg.update()'
       - name: Update image with new docker container
