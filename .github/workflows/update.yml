@@ -21,7 +21,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Install docker image
-        run: docker pull ghcr.io/chemical118/prorf:latest
+        run: docker pull julia:latest
       - name: Update ProRF.jl module
         run: docker run --name ProRF ghcr.io/chemical118/prorf:latest julia -e 'using Pkg; Pkg.update()'
       - name: Update image with new docker container
