@@ -8,9 +8,10 @@ on:
   pull_request:
 
 jobs:
-  build:
-    permissions: write
+  deploy:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
       - uses: actions/checkout@v2
       - name: Login ghcr.io
