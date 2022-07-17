@@ -194,7 +194,7 @@ function _view_mutation(fasta_loc::String)
             push!(loc_hist_vector, data_len - max_value)
         end
     end
-    loc_cum_vector = cumsum(loc_vector[end:-1:1])[end:-1:1]
+    loc_cum_vector = reverse(cumsum(reverse(loc_vector)))
     last_ind = findfirst(isequal(0), loc_cum_vector)
     loc_vector = loc_vector[1:last_ind]
     loc_cum_vector = loc_cum_vector[1:last_ind]
@@ -253,11 +253,11 @@ end
 Execute `DecisionTree.predict(regr, X)` in parallel.
 """
 function parallel_predict(regr::RandomForestRegressor, X::Matrix{Float64})
-    test_vector = [Vector{Float64}(row) for row in eachrow(X)]
-    val_vector = similar(test_vector, Float64)
+    data_len = size(X, 1)
+    val_vector = Vector{Float64}(undef, data_len)
 
-    Threads.@threads for (ind, vec) in collect(enumerate(test_vector))
-        val_vector[ind] = DecisionTree.predict(regr, vec)
+    Threads.@threads for i in 1:data_len
+        val_vector[i] = DecisionTree.predict(regr, @view(X[i, :]))
     end
     return val_vector
 end
@@ -775,7 +775,7 @@ function _location_data(fasta_loc::String)
         end
         push!(loc_vector, loc_dict)
     end
-    return size(seq_matrix)[1], loc_vector, seq_matrix
+    return size(seq_matrix, 1), loc_vector, seq_matrix
 end
 
 function _location_data(fasta_loc::String, data_idx::Vector{Int})
@@ -792,7 +792,7 @@ function _location_data(fasta_loc::String, data_idx::Vector{Int})
         end
         push!(loc_vector, loc_dict)
     end
-    return size(seq_matrix)[1], loc_vector, seq_matrix
+    return size(seq_matrix, 1), loc_vector, seq_matrix
 end
 
 """
@@ -1151,8 +1151,8 @@ function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Fl
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
     data_state::UInt64=@seed, imp_state::UInt64=@seed, learn_state_seed::UInt64=@seed)
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
-    f = zeros(length(L), iter)
-    n = zeros(iter)
+    f = Array{Float64}(undef, (length(L), iter))
+    n = Array{Float64}(undef, iter)
     loc_list = string.(L)
     learn_state_vector = Vector{Int}(rand(MersenneTwister(learn_state_seed), 0:typemax(Int), iter))
     for i in 1:iter
@@ -1253,7 +1253,7 @@ function get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64};
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
     data_state::UInt64=@seed, learn_state::UInt64=@seed)
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
-    z = zeros(Float64, length(RI.nfeat), length(RI.ntree))
+    z = Array{Float64}(undef, (length(RI.nfeat), length(RI.ntree)))
     task = [(i[1], j[1], i[2], j[2]) for i in enumerate(RI.nfeat), j in enumerate(RI.ntree)]
     
     for (i, j, feat, tree) in task
@@ -1365,7 +1365,7 @@ Returns the mean and standard deviation of [`nrmse`](@ref) value.
 function iter_get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64}, iter::Int;
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
     val_mode::Bool=false, test_size::Float64=0.3, learn_state::UInt64=@seed, data_state_seed::UInt64=@seed)
-    z = zeros(length(RI.nfeat), length(RI.ntree), iter)
+    z = Array{Float64}(undef, (length(RI.nfeat), length(RI.ntree), iter))
     data_state_vector = Vector{UInt64}(rand(MersenneTwister(data_state_seed), UInt64, iter))
     for i = 1:iter
         z[:, :, i] = get_reg_value(RI, X, Y, val_mode=true, max_depth=max_depth, min_samples_leaf=min_samples_leaf, min_samples_split=min_samples_split, test_size=test_size, data_state=data_state_vector[i], learn_state=learn_state)
