@@ -14,8 +14,8 @@ Pkg.add(url="https://github.com/Chemical118/ProRF.jl")
   
 `ProRF` is still developing! Please send to <wowo0118@korea.ac.kr> if you have any question.
 
-## Package
+<!-- ## Package
 This is an environment where you can run `ProRF` perfectly with VSCode.
 ```bash
 $ docker pull ghcr.io/chemical118/prorf:latest
-```
+``` -->
