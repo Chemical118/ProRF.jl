@@ -253,13 +253,7 @@ end
 Execute `DecisionTree.predict(regr, X)` in parallel.
 """
 function parallel_predict(regr::RandomForestRegressor, X::Matrix{Float64})
-    data_len = size(X, 1)
-    val_vector = Vector{Float64}(undef, data_len)
-
-    Threads.@threads for i in 1:data_len
-        val_vector[i] = DecisionTree.predict(regr, @view(X[i, :]))
-    end
-    return val_vector
+    return DecisionTree.apply_forest(regr.ensemble, X, use_multithreading=true)
 end
 
 """
