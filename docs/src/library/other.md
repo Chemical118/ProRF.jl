@@ -3,6 +3,7 @@ Documentaion for `ProRF`'s useful things to perform data preprocessing or random
 
 ## Random Forest
 ```@docs
+get_rf_value
 train_test_split
 nrmse
 test_nrmse

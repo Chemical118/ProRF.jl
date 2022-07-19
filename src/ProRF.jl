@@ -6,7 +6,7 @@ using FASTX, BioAlignments, XLSX, Phylo, AxisArrays, AverageShiftedHistograms
 
 export AbstractRF, AbstractRFI, RF, RFI
 export get_data, view_mutation, view_reg3d, view_importance, view_sequence, view_result
-export train_test_split, test_nrmse, nrmse, min_max_norm, load_model, save_model, julia_isinteractive
+export train_test_split, test_nrmse, nrmse, min_max_norm, load_model, save_model, julia_isinteractive, get_rf_value
 export get_reg_importance, iter_get_reg_importance, parallel_predict
 export get_reg_value, get_reg_value_loc, iter_get_reg_value, rf_importance, rf_model, rf_nrmse
 export data_preprocess_fill, data_preprocess_index
@@ -265,14 +265,8 @@ Get raw sequence vector and `L` data to make `X` data and execute `DecisionTree.
 """
 function parallel_predict(regr::RandomForestRegressor, L::Vector{Int}, seq_vector::Vector{String}; convert::Dict{Char, Float64}=ProRF.volume)
     seq_vector = map(x -> x[L], seq_vector)
-
     test_vector = [[Float64(convert[s]) for s in seq] for seq in seq_vector]
-    val_vector = similar(test_vector, Float64)
-    
-    Threads.@threads for (ind, vec) in collect(enumerate(test_vector))
-        val_vector[ind] = DecisionTree.predict(regr, vec)
-    end
-    return val_vector
+    return DecisionTree.apply_forest(regr.ensemble, test_vector, use_multithreading=true)
 end
 
 """
@@ -1129,6 +1123,7 @@ Returns the mean and standard deviation of feature importance.
 - `L::Vector{Int}` : `L` data.
 - `feat::Int` : number of selected features.
 - `tree::Int` : number of trees.
+- `iter::Int` : number of operations iterations.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `test_size::Float64` : size of test set.
 - `show_number::Int` : number of locations to show importance.
@@ -1384,6 +1379,85 @@ end
 
 function _randomforestregressor(feat::Int, tree::Int, max_depth::Int, min_samples_leaf::Int, min_samples_split::Int, learn_state::UInt64)
     return RandomForestRegressor(n_trees=tree, n_subfeatures=feat, max_depth=max_depth, min_samples_leaf=min_samples_leaf, min_samples_split=min_samples_split, rng=MersenneTwister(learn_state), impurity_importance=false)
+end
+
+"""
+    get_rf_value(X::Matrix{Float64}, Y::Vector{Float64};
+                 iter::Int=10, test_size::Float64=0.3,
+                 feat_range::Int=4, base_tree::Int=50,
+                 memory_usage::Float64=4.0,
+                 max_tree::Int=1000)
+
+# Examples
+```julia-repl
+julia> NFeat, NTree, NDepth = get_rf_value(X, Y, iter=5, memory_usage=10);
+```
+Find best three arguments for random forest.
+
+# Arguments
+- `X::Matrix{Float64}` : `X` data.
+- `Y::Vector{Float64}` : `Y` data.
+- `iter::Int` : number of operations iterations.
+- `test_size::Float64` : size of test set.
+- `feat_range::Int` : scope of search for number of selected features.
+- `base_tree::Int` : number of trees used when navigating.
+- `memory_usage::Float64` : available memory capacity (GB)
+- `max_tree::Int` : thresholds fornumber of trees for performance.
+
+# Return
+- `opt_feat::Int` : optimized number of selected features.
+- `opt_tree::Int` : optimized number of trees.
+- `opt_depth::Int` : optimized maximum depth of the tree.
+"""
+function get_rf_value(X::Matrix{Float64}, Y::Vector{Float64}; iter::Int=10, test_size::Float64=0.3, feat_range::Int=4, base_tree::Int=50, memory_usage::Float64=4.0, max_tree::Int=1000)
+    sfea = floor(Int, sqrt(nfea))
+    rfea = max(2, sfea - feat_range):min(size(X, 2), sfea + feat_range)
+
+    ans = Vector{Vector{Float64}}()
+    for i in 1:iter
+        @printf "Find the number of feature : %d / %d" i iter
+        data_state, learn_state = @seed, @seed
+        nrmse_vector = Vector{Float64}()
+        for fea in rfea
+            push!(nrmse_vector, rf_nrmse(X, Y, fea, base_tree, val_mode=true, data_state=data_state, learn_state=learn_state, test_size=test_size)[2])
+        end
+        push!(ans, nrmse_vector)
+    end
+    opt_feat = rfea[argmin(mean.(eachrow(Matrix{Float64}(hcat(ans...)))))]
+
+    adep = mean([DecisionTree.depth(tree) for tree in rf_model(X, Y, opt_feat, base_tree, val_mode=true, test_size=test_size).ensemble.trees])
+    idep = ceil(Int, adep / 50)
+    rdep = 50:50:idep*50
+
+    ans = Vector{Vector{Float64}}()
+    for i in 1:iter
+        @printf "Find the maximum depth of the tree approximatively : %d / %d" i iter
+        data_state, learn_state = @seed, @seed
+        nrmse_vector = Vector{Float64}()
+        for dep in rdep
+            push!(nrmse_vector, rf_nrmse(X, Y, opt_feat, base_tree, max_depth=dep, val_mode=true, data_state=data_state, learn_state=learn_state, test_size=test_size)[2])
+        end
+        push!(ans, nrmse_vector)
+    end
+    dep_ind = argmin(mean.(eachrow(Matrix{Float64}(hcat(ans...)))))
+
+    rdep = rdep[max(dep_ind - 1, 1)]:10:min(rdep[min(dep_ind + 1, idep)], ceil(Int, adep / 10) * 10)
+
+    ans = Vector{Vector{Float64}}()
+    for i in 1:iter
+        @printf "Find the maximum depth of the tree accurately : %d / %d" i iter
+        data_state, learn_state = @seed, @seed
+        nrmse_vector = Vector{Float64}()
+        for dep in rdep
+            push!(nrmse_vector, rf_nrmse(X, Y, opt_feat, base_tree, max_depth=dep, val_mode=true, data_state=data_state, learn_state=learn_state, test_size=test_size)[2])
+        end
+        push!(ans, nrmse_vector)
+    end
+    opt_depth = rdep[argmin(mean.(eachrow(Matrix{Float64}(hcat(ans...)))))]
+
+    atree = mean([DecisionTree.length(tree) for tree in rf_model(X, Y, opt_feat, max_depth=opt_depth, base_tree, val_mode=true, test_size=test_size).ensemble.trees])
+    opt_tree = min(max_tree, floor(Int, 600000.0 * memory_usage / atree))
+    return opt_feat, opt_tree, opt_depth
 end
 
 # Convert dictionary
