@@ -1416,7 +1416,7 @@ function get_rf_value(X::Matrix{Float64}, Y::Vector{Float64}; iter::Int=10, test
 
     ans = Vector{Vector{Float64}}()
     for i in 1:iter
-        @printf "Find the number of feature : %d / %d" i iter
+        @printf "Find the number of feature : %d / %d\n" i iter
         data_state, learn_state = @seed, @seed
         nrmse_vector = Vector{Float64}()
         for fea in rfea
@@ -1424,6 +1424,7 @@ function get_rf_value(X::Matrix{Float64}, Y::Vector{Float64}; iter::Int=10, test
         end
         push!(ans, nrmse_vector)
     end
+    println()
     opt_feat = rfea[argmin(mean.(eachrow(Matrix{Float64}(hcat(ans...)))))]
 
     adep = mean([DecisionTree.depth(tree) for tree in rf_model(X, Y, opt_feat, base_tree, val_mode=true, test_size=test_size).ensemble.trees])
@@ -1432,7 +1433,7 @@ function get_rf_value(X::Matrix{Float64}, Y::Vector{Float64}; iter::Int=10, test
 
     ans = Vector{Vector{Float64}}()
     for i in 1:iter
-        @printf "Find the maximum depth of the tree approximatively : %d / %d" i iter
+        @printf "Find the maximum depth of the tree approximatively : %d / %d\n" i iter
         data_state, learn_state = @seed, @seed
         nrmse_vector = Vector{Float64}()
         for dep in rdep
@@ -1440,21 +1441,27 @@ function get_rf_value(X::Matrix{Float64}, Y::Vector{Float64}; iter::Int=10, test
         end
         push!(ans, nrmse_vector)
     end
+    println()
     dep_ind = argmin(mean.(eachrow(Matrix{Float64}(hcat(ans...)))))
 
-    rdep = rdep[max(dep_ind - 1, 1)]:10:min(rdep[min(dep_ind + 1, idep)], ceil(Int, adep / 10) * 10)
-
-    ans = Vector{Vector{Float64}}()
-    for i in 1:iter
-        @printf "Find the maximum depth of the tree accurately : %d / %d" i iter
-        data_state, learn_state = @seed, @seed
-        nrmse_vector = Vector{Float64}()
-        for dep in rdep
-            push!(nrmse_vector, rf_nrmse(X, Y, opt_feat, base_tree, max_depth=dep, val_mode=true, data_state=data_state, learn_state=learn_state, test_size=test_size)[2])
+    rdep_st = rdep[max(dep_ind - 1, 1)]
+    rdep_nd = min(rdep[min(dep_ind + 1, idep)], ceil(Int, adep / 10) * 10)
+    if rdep_st < rdep_nd
+        rdep = rdep_st:10:rdep_nd
+        ans = Vector{Vector{Float64}}()
+        for i in 1:iter
+            @printf "Find the maximum depth of the tree accurately : %d / %d\n" i iter
+            data_state, learn_state = @seed, @seed
+            nrmse_vector = Vector{Float64}()
+            for dep in rdep
+                push!(nrmse_vector, rf_nrmse(X, Y, opt_feat, base_tree, max_depth=dep, val_mode=true, data_state=data_state, learn_state=learn_state, test_size=test_size)[2])
+            end
+            push!(ans, nrmse_vector)
         end
-        push!(ans, nrmse_vector)
+        opt_depth = rdep[argmin(mean.(eachrow(Matrix{Float64}(hcat(ans...)))))]
+    else
+        opt_depth = -1
     end
-    opt_depth = rdep[argmin(mean.(eachrow(Matrix{Float64}(hcat(ans...)))))]
 
     atree = mean([DecisionTree.length(tree) for tree in rf_model(X, Y, opt_feat, max_depth=opt_depth, base_tree, val_mode=true, test_size=test_size).ensemble.trees])
     opt_tree = min(max_tree, floor(Int, 600000.0 * memory_usage / atree))
