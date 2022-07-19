@@ -1410,8 +1410,9 @@ Find best three arguments for random forest.
 - `opt_depth::Int` : optimized maximum depth of the tree.
 """
 function get_rf_value(X::Matrix{Float64}, Y::Vector{Float64}; iter::Int=10, test_size::Float64=0.3, feat_range::Int=4, base_tree::Int=50, memory_usage::Float64=4.0, max_tree::Int=1000)
+    nfea = size(X, 2)
     sfea = floor(Int, sqrt(nfea))
-    rfea = max(2, sfea - feat_range):min(size(X, 2), sfea + feat_range)
+    rfea = max(2, sfea - feat_range):min(nfea, sfea + feat_range)
 
     ans = Vector{Vector{Float64}}()
     for i in 1:iter
