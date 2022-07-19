@@ -1463,7 +1463,7 @@ function get_rf_value(X::Matrix{Float64}, Y::Vector{Float64}; iter::Int=10, test
         opt_depth = -1
     end
 
-    atree = mean([DecisionTree.length(tree) for tree in rf_model(X, Y, opt_feat, max_depth=opt_depth, base_tree, val_mode=true, test_size=test_size).ensemble.trees])
+    atree = mean([DecisionTree.length(tree) for tree in rf_model(X, Y, opt_feat, base_tree, max_depth=opt_depth, val_mode=true, test_size=test_size).ensemble.trees])
     opt_tree = min(max_tree, floor(Int, 600000.0 * memory_usage / atree))
     return opt_feat, opt_tree, opt_depth
 end
