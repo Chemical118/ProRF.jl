@@ -1196,21 +1196,18 @@ function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Fl
     f = Array{Float64}(undef, (length(L), iter))
     n = Array{Float64}(undef, iter)
     loc = string.(L)
-    println(typeof(f))
-    println(typeof(n))
 
-    seed_vector = [(ds, ls) for ds in Vector{UInt64}(rand(MersenneTwister(data_state_seed), UInt64, data_iter)) for ls in Vector{UInt64}(rand(MersenneTwister(learn_state_seed), UInt64, learn_iter))]
-    for (i, (data_state, learn_state)) in enumerate(seed_vector)
-        x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
-        regr = _randomforestregressor(feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
-        DecisionTree.fit!(regr, x_train, y_train)
-        println("a")
-        f[:, i] = _rf_importance(regr, DataFrame(X, loc), imp_iter, seed=imp_state, val_mode=true, parallel=false)
-        println("b")
-        n[i] = test_nrmse(regr, x_test, y_test)
-        println("c")
-    end
+    data_state_vector = Vector{UInt64}(rand(MersenneTwister(data_state_seed), UInt64, data_iter))
+    learn_state_vector = Vector{UInt64}(rand(MersenneTwister(learn_state_seed), UInt64, learn_iter))
     
+    for (i, data_state) in enumerate(data_state_vector)
+        x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
+        for (j, learn_state) in learn_state_vector
+            idx = (i - 1) * j + j
+            f[:, idx], n[idx] = _iter_get_reg_importance(X, x_train, x_test, y_train, y_test, loc, feat, tree, imp_iter, max_depth, min_samples_leaf, min_samples_split, imp_state, learn_state)
+        end
+    end
+
     mf = mean(f, dims=2)[:, 1]
     if iter > 1
         sf = std(f, dims=2)[:, 1]
@@ -1219,7 +1216,7 @@ function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Fl
     end
 
     if val_mode == false
-        _iter_view_importance(mf, sf, loc_list, show_number=show_number)
+        _iter_view_importance(mf, sf, loc, show_number=show_number)
         @printf "NRMSE : %.6f\n" mean(n)
     end
 
@@ -1229,7 +1226,7 @@ end
 function _iter_get_reg_importance(X::Matrix{Float64}, x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, loc::Vector{String}, feat::Int, tree::Int, imp_iter::Int, max_depth::Int, min_samples_leaf::Int, min_samples_split::Int, imp_state::UInt64, learn_state::UInt64)
     regr = _randomforestregressor(feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
     DecisionTree.fit!(regr, x_train, y_train)
-    return _rf_importance(regr, DataFrame(X, loc), imp_iter, seed=imp_state, val_mode=true), test_nrmse(regr, x_test, y_test)
+    return _rf_importance(regr, DataFrame(X, loc), imp_iter, seed=imp_state, val_mode=true, parallel=false), test_nrmse(regr, x_test, y_test)
 end
 
 """
