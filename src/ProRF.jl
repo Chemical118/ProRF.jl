@@ -1148,21 +1148,22 @@ end
 """
     iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64},
                             L::Vector{Int},
-                            feat::Int, tree::Int, iter::Int;
+                            feat::Int, tree::Int,
+                            data_iter::Int, learn_iter::Int;
                             val_mode::Bool=false, test_size::Float64=0.3,
                             show_number::Int=20, imp_iter::Int=60,
                             max_depth::Int=-1,
                             min_samples_leaf::Int=1,
                             min_samples_split::Int=2,
-                            data_state::UInt64=@seed,
-                            imp_state::UInt64=@seed,
-                            learn_state_seed::UInt64=@seed)
+                            data_state_seed::UInt64=@seed,
+                            learn_state_seed::UInt64=@seed,
+                            imp_state::UInt64=@seed)
 
 # Examples
 ```julia-repl
-julia> MF, SF = iter_get_reg_importance(R, X, Y, L, 3, 700, 10);
+julia> MF, SF = iter_get_reg_importance(R, X, Y, L, 3, 700, 10, 10);
 ```
-Calculate feature importance by repeating `iter::Int` times with a fixed data and importance seed, then draw feature importance list inclding standard deviation.
+Calculate feature importance by repeating `data_iter::Int` times about data seed and `learn_iter::Int` times about model seed, then draw feature importance list inclding standard deviation.
 
 Returns the mean and standard deviation of feature importance.
 
@@ -1173,7 +1174,8 @@ Returns the mean and standard deviation of feature importance.
 - `L::Vector{Int}` : `L` data.
 - `feat::Int` : number of selected features.
 - `tree::Int` : number of trees.
-- `iter::Int` : number of operations iterations.
+- `data_iter::Int` : number of operations iterations for seed used to split data.
+- `learn_iter::Int` : number of operations iterations for seed used to caculate a regression model.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `test_size::Float64` : size of test set.
 - `show_number::Int` : number of locations to show importance.
@@ -1181,21 +1183,30 @@ Returns the mean and standard deviation of feature importance.
 - `max_depth::Int` : maximum depth of the tree.
 - `min_samples_leaf::Int` : minimum number of samples required to be at a leaf node.
 - `min_samples_split::Int` : minimum number of samples required to split an internal node.
-- `data_state::UInt64` : seed used to split data.
-- `imp_state::UInt64` : seed used to caculate a feature importance.
+- `data_state_seed::UInt64` : seed used to generate seed used to split data.
 - `learn_state_seed::UInt64` : seed used to generate seed used to caculate a regression model.
+- `imp_state::UInt64` : seed used to caculate a feature importance.
 """
-function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{Int}, feat::Int, tree::Int, iter::Int;
+function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{Int}, feat::Int, tree::Int, data_iter::Int, learn_iter::Int;
     val_mode::Bool=false, test_size::Float64=0.3, show_number::Int=20, imp_iter::Int=60,
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
-    data_state::UInt64=@seed, imp_state::UInt64=@seed, learn_state_seed::UInt64=@seed)
-    x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
+    data_state_seed::UInt64=@seed, learn_state_seed::UInt64=@seed, imp_state::UInt64=@seed)
+
+    iter = learn_iter * data_iter
     f = Array{Float64}(undef, (length(L), iter))
     n = Array{Float64}(undef, iter)
     loc_list = string.(L)
-    learn_state_vector = Vector{Int}(rand(MersenneTwister(learn_state_seed), 0:typemax(Int), iter))
-    for i in 1:iter
-        f[:, i], n[i] = _iter_get_reg_importance(X, x_train, x_test, y_train, y_test, loc_list, feat, tree, imp_iter, max_depth, min_samples_leaf, min_samples_split, imp_state, learn_state_vector[i])
+    
+    data_state_vector = Vector{UInt64}(rand(MersenneTwister(data_state_seed), UInt64, data_iter))
+    learn_state_vector = Vector{UInt64}(rand(MersenneTwister(learn_state_seed), UInt64, learn_iter))
+    
+    idx = 0
+    for data_state in data_state_vector
+        x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
+        for learn_state in learn_state_vector
+            idx += 1
+            f[:, idx], n[idx] = _iter_get_reg_importance(X, x_train, x_test, y_train, y_test, loc_list, feat, tree, imp_iter, max_depth, min_samples_leaf, min_samples_split, imp_state, learn_state)
+        end
     end
     
     mf = mean(f, dims=2)[:, 1]
