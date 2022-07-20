@@ -1079,6 +1079,7 @@ function _rf_importance(regr::RandomForestRegressor, dx::DataFrame, iter::Int=60
     data_shap = ShapML.shap(explain = dx,
                     model = regr,
                     predict_function = _rf_dfpredict,
+                    parallel = :features,
                     sample_size = iter,
                     seed = seed)
     data_plot = combine(groupby(data_shap, :feature_name), :shap_effect => x -> mean(abs.(x)))
