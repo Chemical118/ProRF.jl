@@ -1195,7 +1195,7 @@ function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Fl
     iter = learn_iter * data_iter
     f = Array{Float64}(undef, (length(L), iter))
     n = Array{Float64}(undef, iter)
-    loc_list = string.(L)
+    loc = string.(L)
     
     seed_vector = [(ds, ls) for ds in Vector{UInt64}(rand(MersenneTwister(data_state_seed), UInt64, data_iter)) for ls in Vector{UInt64}(rand(MersenneTwister(learn_state_seed), UInt64, learn_iter))]
     for (i, (data_state, learn_state)) in enumerate(seed_vector)
