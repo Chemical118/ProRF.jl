@@ -1079,6 +1079,7 @@ function _rf_importance(regr::RandomForestRegressor, dx::DataFrame, iter::Int=60
     data_shap = ShapML.shap(explain = dx,
                     model = regr,
                     predict_function = _rf_dfpredict,
+                    parallel = :features,
                     sample_size = iter,
                     seed = seed)
     data_plot = combine(groupby(data_shap, :feature_name), :shap_effect => x -> mean(abs.(x)))
@@ -1196,15 +1197,16 @@ function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Fl
     n = Array{Float64}(undef, iter)
     loc_list = string.(L)
     
-    data_state_vector = Vector{UInt64}(rand(MersenneTwister(data_state_seed), UInt64, data_iter))
-    learn_state_vector = Vector{UInt64}(rand(MersenneTwister(learn_state_seed), UInt64, learn_iter))
-    
-    for (i, data_state) in enumerate(data_state_vector)
+    seed_vector = [(ds, ls) for ds in Vector{UInt64}(rand(MersenneTwister(data_state_seed), UInt64, data_iter)) for ls in Vector{UInt64}(rand(MersenneTwister(learn_state_seed), UInt64, learn_iter))]
+    for (i, (data_state, learn_state)) in enumerate(seed_vector)
         x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
-        for (j, learn_state) in enumerate(learn_state_vector)
-            idx = (i - 1) * j + j
-            f[:, idx], n[idx] = _iter_get_reg_importance(X, x_train, x_test, y_train, y_test, loc_list, feat, tree, imp_iter, max_depth, min_samples_leaf, min_samples_split, imp_state, learn_state)
-        end
+        regr = _randomforestregressor(feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
+        DecisionTree.fit!(regr, x_train, y_train)
+        println("a")
+        f[:, i] = _rf_importance(regr, DataFrame(X, loc), imp_iter, seed=imp_state, val_mode=true)
+        println("b")
+        n[i] = test_nrmse(regr, x_test, y_test)
+        println("c")
     end
     
     mf = mean(f, dims=2)[:, 1]
