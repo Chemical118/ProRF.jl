@@ -22,7 +22,7 @@ view_mutation
 ## Convert dictionary
 Convert dictionary for [`get_data`](@ref)
 
-|Amino acid|Molar volume \[[1](@ref Reference)\]|pI \[[2](@ref Reference)\]|Hydrophobicity \[[4](@ref Reference)\]|Frequency \[[3](@ref Reference)\]|
+|Amino acid|Molar volume \[[4](@ref Reference)\]|pI \[[2](@ref Reference)\]|Hydrophobicity \[[3](@ref Reference)\]|Frequency \[[1](@ref Reference)\]|
 |:---|:---|:---|:---|:---|
 |Alanine|88.6|6.00|51|0.0777|
 |Arginine|173.4|10.76|-144|0.0627|

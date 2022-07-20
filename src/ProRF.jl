@@ -966,8 +966,58 @@ function view_result(regr::RandomForestRegressor, X::Matrix{Float64}, Y::Vector{
     _view_result(regr, X[ed_idx, :], Y[ed_idx], nbin)
 end
 
+"""
+    view_result(pre::Vector{Float64}, tru::Vector{Float64}; nbin::Int=200)
+
+Draw random forest result and return normalized root mean square error with predict value and true value.
+"""
+function view_result(pre::Vector{Float64}, tru::Vector{Float64}; nbin::Int=200)
+    _view_result(pre, tru, nbin)
+end
+
+"""
+    view_result(pre::Vector{Float64}, tru::Vector{Float64}, data_state::UInt64;
+                test_size::Float64=0.3, nbin::Int=200, test_mode::Bool=true)
+
+Draw test or train set random forest result and return normalized root mean square error with predict, true value and seed.
+"""
+function view_result(pre::Vector{Float64}, tru::Vector{Float64}, data_state::UInt64; test_size::Float64=0.3, nbin::Int=200, test_mode::Bool=true)
+    n = length(Y)
+    idx = shuffle(MersenneTwister(data_state), 1:n)
+    ed_idx = test_mode ? view(idx, 1:floor(Int, test_size*n)) : view(idx, (floor(Int, test_size*n)+1):n)
+    _view_result(pre[ed_idx], tru[ed_idx], nbin)
+end
+
 function _view_result(regr::RandomForestRegressor, x_test::Matrix{Float64}, y_test::Vector{Float64}, nbin::Int)
     predict_test = parallel_predict(regr, x_test)
+    nrmse_val = nrmse(predict_test, y_test)
+    if length(y_test) ≤ 150
+        scatter(y_test, predict_test, color="#440154", s=20)
+    else
+        color = Vector{Float64}()
+        ke = AverageShiftedHistograms.Kernels.gaussian
+        kde = ash(y_test, predict_test, nbin=nbin, kernelx=ke, kernely=ke)
+        for (tru, val) in zip(y_test, predict_test)
+            push!(color, AverageShiftedHistograms.pdf(kde, tru, val))
+        end
+        sorted_idx = sortperm(color)
+        scatter(y_test[sorted_idx], predict_test[sorted_idx], c=color[sorted_idx], s=3)
+        colorbar()
+    end
+    PyPlot.title("Random Forest Regression Result")
+    xlabel("True Values")
+    ylabel("Predictions")
+    axis("equal")
+    axis("square")
+    xlim(-max(0, -xlim()[1]), xlim()[2])
+    ylim(-max(0, -ylim()[1]), ylim()[2])
+    plot([-1000, 1000], [-1000, 1000], color="black")
+    @show_pyplot
+    @printf "NRMSE : %.6f\n" nrmse_val
+    return nrmse_val
+end
+
+function _view_result(predict_test::Vector{Float64}, y_test::Vector{Float64}, nbin::Int)
     nrmse_val = nrmse(predict_test, y_test)
     if length(y_test) ≤ 150
         scatter(y_test, predict_test, color="#440154", s=20)
