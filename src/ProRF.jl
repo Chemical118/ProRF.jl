@@ -1200,10 +1200,9 @@ function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Fl
     data_state_vector = Vector{UInt64}(rand(MersenneTwister(data_state_seed), UInt64, data_iter))
     learn_state_vector = Vector{UInt64}(rand(MersenneTwister(learn_state_seed), UInt64, learn_iter))
     
-    idx = 0
     for (i, data_state) in enumerate(data_state_vector)
         x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
-        for (j, learn_state) in learn_state_vector
+        for (j, learn_state) in enumerate(learn_state_vector)
             idx = (i - 1) * j + j
             f[:, idx], n[idx] = _iter_get_reg_importance(X, x_train, x_test, y_train, y_test, loc_list, feat, tree, imp_iter, max_depth, min_samples_leaf, min_samples_split, imp_state, learn_state)
         end
