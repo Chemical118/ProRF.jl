@@ -798,7 +798,7 @@ end
     get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64},
                        L::Vector{Int}, feat::Int, tree::Int;
                        val_mode::Bool=false, test_size::Float64=0.3,
-                       memory_usage::Float64=4.0,
+                       memory_usage::Real=4.0,
                        nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
                        max_depth::Int=-1,
                        min_samples_leaf::Int=1,
@@ -826,7 +826,7 @@ Caculate regression model and feature importance, then draw random forest result
 - `tree::Int` : number of trees.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `test_size::Float64` : size of test set.
-- `memory_usage::Float64` : available memory capacity (GB)
+- `memory_usage::Real` : available memory capacity (GB)
 - `nbin::Int` : the number of bins for each two dimensions to execute kernel density estimation.
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
@@ -838,7 +838,7 @@ Caculate regression model and feature importance, then draw random forest result
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
 function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{Int}, feat::Int, tree::Int;
-    val_mode::Bool=false, test_size::Float64=0.3, memory_usage::Float64=4.0, nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
+    val_mode::Bool=false, test_size::Float64=0.3, memory_usage::Real=4.0, nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
     data_state::UInt64=@seed, learn_state::UInt64=@seed, imp_state::UInt64=@seed)
     
@@ -1058,7 +1058,7 @@ end
     rf_importance(R::AbstractRF, regr::RandomForestRegressor,
                   X::Matrix{Float64}, L::Vector{Int};
                   val_mode::Bool=false,
-                  memory_usage::Float64=4.0,
+                  memory_usage::Real=4.0,
                   show_number::Int=20, imp_iter::Int=60,
                   imp_state::UInt64=@seed)
     
@@ -1075,13 +1075,13 @@ Caculate feature importance for a target model, then draw feature importance lis
 - `X::Matrix{Float64}` : `X` data.
 - `L::Vector{Int}` : `L` data.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
-- `memory_usage::Float64` : available memory capacity (GB)
+- `memory_usage::Real` : available memory capacity (GB)
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
 function rf_importance(R::AbstractRF, regr::RandomForestRegressor, X::Matrix{Float64}, L::Vector{Int};
-    val_mode::Bool=false, memory_usage::Float64=4.0, show_number::Int=20, imp_iter::Int=60, imp_state::UInt64=@seed)
+    val_mode::Bool=false, memory_usage::Real=4.0, show_number::Int=20, imp_iter::Int=60, imp_state::UInt64=@seed)
     memory_estimate = *(size(X)...) / 35000.0
     if memory_estimate > memory_usage
         n = size(X, 1)
@@ -1196,7 +1196,7 @@ Returns the mean and standard deviation of feature importance.
 - `learn_iter::Int` : number of operations iterations for seed used to caculate a regression model.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `test_size::Float64` : size of test set.
-- `memory_usage::Float64` : available memory capacity (GB)
+- `memory_usage::Real` : available memory capacity (GB)
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
 - `max_depth::Int` : maximum depth of the tree.
@@ -1207,7 +1207,7 @@ Returns the mean and standard deviation of feature importance.
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
 function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{Int}, feat::Int, tree::Int, data_iter::Int, learn_iter::Int;
-    val_mode::Bool=false, test_size::Float64=0.3, memory_usage::Float64=4.0, show_number::Int=20, imp_iter::Int=60,
+    val_mode::Bool=false, test_size::Float64=0.3, memory_usage::Real=4.0, show_number::Int=20, imp_iter::Int=60,
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
     data_state_seed::UInt64=@seed, learn_state_seed::UInt64=@seed, imp_state::UInt64=@seed)
 
@@ -1473,7 +1473,7 @@ end
     get_rf_value(X::Matrix{Float64}, Y::Vector{Float64};
                  iter::Int=10, test_size::Float64=0.3,
                  feat_range::Int=4, base_tree::Int=50,
-                 memory_usage::Float64=4.0,
+                 memory_usage::Real=4.0,
                  max_tree::Int=1000)
 
 # Examples
@@ -1489,7 +1489,7 @@ Find best three arguments for random forest.
 - `test_size::Float64` : size of test set.
 - `feat_range::Int` : scope of search for number of selected features.
 - `base_tree::Int` : number of trees used when navigating.
-- `memory_usage::Float64` : available memory capacity (GB)
+- `memory_usage::Real` : available memory capacity (GB)
 - `max_tree::Int` : thresholds fornumber of trees for performance.
 
 # Return
@@ -1497,7 +1497,7 @@ Find best three arguments for random forest.
 - `opt_tree::Int` : optimized number of trees.
 - `opt_depth::Int` : optimized maximum depth of the tree.
 """
-function get_rf_value(X::Matrix{Float64}, Y::Vector{Float64}; iter::Int=10, test_size::Float64=0.3, feat_range::Int=4, base_tree::Int=50, memory_usage::Float64=4.0, max_tree::Int=1000)
+function get_rf_value(X::Matrix{Float64}, Y::Vector{Float64}; iter::Int=10, test_size::Float64=0.3, feat_range::Int=4, base_tree::Int=50, memory_usage::Real=4.0, max_tree::Int=1000)
     nfea = size(X, 2)
     sfea = floor(Int, sqrt(nfea))
     rfea = max(2, sfea - feat_range):min(nfea, sfea + feat_range)
