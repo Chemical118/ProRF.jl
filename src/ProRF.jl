@@ -797,8 +797,8 @@ end
 """
     get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64},
                        L::Vector{Int}, feat::Int, tree::Int;
-                       val_mode::Bool=false, chunk::Bool=true,
-                       test_size::Float64=0.3,
+                       val_mode::Bool=false, test_size::Float64=0.3,
+                       memory_usage::Float64=4.0,
                        nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
                        max_depth::Int=-1,
                        min_samples_leaf::Int=1,
@@ -825,8 +825,8 @@ Caculate regression model and feature importance, then draw random forest result
 - `feat::Int` : number of selected features.
 - `tree::Int` : number of trees.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
-- `chunk::Bool` : increase RAM usage to increase speed.
 - `test_size::Float64` : size of test set.
+- `memory_usage::Float64` : available memory capacity (GB)
 - `nbin::Int` : the number of bins for each two dimensions to execute kernel density estimation.
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
@@ -838,7 +838,7 @@ Caculate regression model and feature importance, then draw random forest result
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
 function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{Int}, feat::Int, tree::Int;
-    val_mode::Bool=false, chunk::Bool=true, test_size::Float64=0.3, nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
+    val_mode::Bool=false, test_size::Float64=0.3, memory_usage::Float64=4.0, nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
     data_state::UInt64=@seed, learn_state::UInt64=@seed, imp_state::UInt64=@seed)
     
@@ -849,7 +849,14 @@ function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64
     if val_mode == false
         _view_result(regr, x_test, y_test, nbin)
     end
-    return regr, _rf_importance(regr, DataFrame(X, string.(L)), imp_iter, seed=imp_state, show_number=show_number, val_mode=val_mode, chunk=chunk)
+    memory_estimate = *(size(X)...) / 35000.0
+    if memory_estimate > memory_usage
+        n = size(X, 1)
+        idx = shuffle(MersenneTwister(imp_state), 1:n)
+        edit_idx = view(idx, 1:floor(Int, n * memory_usage / memory_estimate))
+        X = X[edit_idx, :]
+    end
+    return regr, _rf_importance(regr, DataFrame(X, string.(L)), imp_iter, seed=imp_state, show_number=show_number, val_mode=val_mode)
 end
 
 """
@@ -1050,7 +1057,8 @@ end
 """
     rf_importance(R::AbstractRF, regr::RandomForestRegressor,
                   X::Matrix{Float64}, L::Vector{Int};
-                  val_mode::Bool=false, chunk::Bool=true,
+                  val_mode::Bool=false,
+                  memory_usage::Float64=4.0,
                   show_number::Int=20, imp_iter::Int=60,
                   imp_state::UInt64=@seed)
     
@@ -1067,24 +1075,30 @@ Caculate feature importance for a target model, then draw feature importance lis
 - `X::Matrix{Float64}` : `X` data.
 - `L::Vector{Int}` : `L` data.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
-- `chunk::Bool` : increase RAM usage to increase speed.
+- `memory_usage::Float64` : available memory capacity (GB)
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
 function rf_importance(R::AbstractRF, regr::RandomForestRegressor, X::Matrix{Float64}, L::Vector{Int};
-    val_mode::Bool=false, chunk::Bool=true, show_number::Int=20, imp_iter::Int=60, imp_state::UInt64=@seed)
-    return _rf_importance(regr, DataFrame(X, string.(L)), imp_iter, seed=imp_state, val_mode=val_mode, show_number=show_number, chunk=chunk)
+    val_mode::Bool=false, memory_usage::Float64=4.0, show_number::Int=20, imp_iter::Int=60, imp_state::UInt64=@seed)
+    memory_estimate = *(size(X)...) / 35000.0
+    if memory_estimate > memory_usage
+        n = size(X, 1)
+        idx = shuffle(MersenneTwister(imp_state), 1:n)
+        edit_idx = view(idx, 1:floor(Int, n * memory_usage / memory_estimate))
+        X = X[edit_idx, :]
+    end
+    return _rf_importance(regr, DataFrame(X, string.(L)), imp_iter, seed=imp_state, val_mode=val_mode, show_number=show_number)
 end
 
 function _rf_importance(regr::RandomForestRegressor, dx::DataFrame, iter::Int=60; 
-                        seed::UInt64=@seed, show_number::Int=20, val_mode::Bool=false, parallel::Bool=true, chunk::Bool=true)
+                        seed::UInt64=@seed, show_number::Int=20, val_mode::Bool=false, parallel::Bool=true)
     data_shap = ShapML.shap(explain = dx,
                     model = regr,
                     predict_function = _rf_dfpredict,
                     parallel = parallel ? :features : :none,
                     sample_size = iter,
-                    chunk = chunk,
                     seed = seed)
     data_plot = combine(groupby(data_shap, :feature_name), :shap_effect => x -> mean(abs.(x)))
     baseline = data_shap.intercept[1]
@@ -1182,6 +1196,7 @@ Returns the mean and standard deviation of feature importance.
 - `learn_iter::Int` : number of operations iterations for seed used to caculate a regression model.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `test_size::Float64` : size of test set.
+- `memory_usage::Float64` : available memory capacity (GB)
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
 - `max_depth::Int` : maximum depth of the tree.
@@ -1192,7 +1207,7 @@ Returns the mean and standard deviation of feature importance.
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
 function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{Int}, feat::Int, tree::Int, data_iter::Int, learn_iter::Int;
-    val_mode::Bool=false, test_size::Float64=0.3, show_number::Int=20, imp_iter::Int=60,
+    val_mode::Bool=false, test_size::Float64=0.3, memory_usage::Float64=4.0, show_number::Int=20, imp_iter::Int=60,
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
     data_state_seed::UInt64=@seed, learn_state_seed::UInt64=@seed, imp_state::UInt64=@seed)
 
@@ -1204,11 +1219,20 @@ function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Fl
     data_state_vector = Vector{UInt64}(rand(MersenneTwister(data_state_seed), UInt64, data_iter))
     learn_state_vector = Vector{UInt64}(rand(MersenneTwister(learn_state_seed), UInt64, learn_iter))
     
+    memory_estimate = *(size(X)...) / 35000.0
+    n = size(X, 1)
+    if memory_estimate > memory_usage
+        idx = shuffle(MersenneTwister(imp_state), 1:n)
+        edit_idx = Vector{Int}(idx[1:floor(Int, n * memory_usage / memory_estimate)])
+    else
+        edit_idx = Vector{Int}(1:n)
+    end
+
     for (i, data_state) in enumerate(data_state_vector)
         x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
         for (j, learn_state) in enumerate(learn_state_vector)
             idx = (i - 1) * j + j
-            f[:, idx], n[idx] = _iter_get_reg_importance(X, x_train, x_test, y_train, y_test, loc, feat, tree, imp_iter, max_depth, min_samples_leaf, min_samples_split, imp_state, learn_state)
+            f[:, idx], n[idx] = _iter_get_reg_importance(X, x_train, x_test, y_train, y_test, loc, feat, tree, imp_iter, max_depth, min_samples_leaf, min_samples_split, imp_state, learn_state, edit_idx)
         end
     end
 
@@ -1227,10 +1251,10 @@ function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Fl
     return mf, sf
 end
 
-function _iter_get_reg_importance(X::Matrix{Float64}, x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, loc::Vector{String}, feat::Int, tree::Int, imp_iter::Int, max_depth::Int, min_samples_leaf::Int, min_samples_split::Int, imp_state::UInt64, learn_state::UInt64)
+function _iter_get_reg_importance(X::Matrix{Float64}, x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, loc::Vector{String}, feat::Int, tree::Int, imp_iter::Int, max_depth::Int, min_samples_leaf::Int, min_samples_split::Int, imp_state::UInt64, learn_state::UInt64, edit_idx::Vector{Int})
     regr = _randomforestregressor(feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
     DecisionTree.fit!(regr, x_train, y_train)
-    return _rf_importance(regr, DataFrame(X, loc), imp_iter, seed=imp_state, val_mode=true, parallel=false), test_nrmse(regr, x_test, y_test)
+    return _rf_importance(regr, DataFrame(X[edit_idx, :], loc), imp_iter, seed=imp_state, val_mode=true, parallel=false), test_nrmse(regr, x_test, y_test)
 end
 
 """
