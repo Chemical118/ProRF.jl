@@ -797,7 +797,8 @@ end
 """
     get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64},
                        L::Vector{Int}, feat::Int, tree::Int;
-                       val_mode::Bool=false, test_size::Float64=0.3,
+                       val_mode::Bool=false, chunk::Bool=true,
+                       test_size::Float64=0.3,
                        nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
                        max_depth::Int=-1,
                        min_samples_leaf::Int=1,
@@ -824,6 +825,7 @@ Caculate regression model and feature importance, then draw random forest result
 - `feat::Int` : number of selected features.
 - `tree::Int` : number of trees.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
+- `chunk::Bool` : increase RAM usage to increase speed.
 - `test_size::Float64` : size of test set.
 - `nbin::Int` : the number of bins for each two dimensions to execute kernel density estimation.
 - `show_number::Int` : number of locations to show importance.
@@ -836,7 +838,7 @@ Caculate regression model and feature importance, then draw random forest result
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
 function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{Int}, feat::Int, tree::Int;
-    val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
+    val_mode::Bool=false, chunk::Bool=true, test_size::Float64=0.3, nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
     data_state::UInt64=@seed, learn_state::UInt64=@seed, imp_state::UInt64=@seed)
     
@@ -847,7 +849,7 @@ function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64
     if val_mode == false
         _view_result(regr, x_test, y_test, nbin)
     end
-    return regr, _rf_importance(regr, DataFrame(X, string.(L)), imp_iter, seed=imp_state, show_number=show_number, val_mode=val_mode)
+    return regr, _rf_importance(regr, DataFrame(X, string.(L)), imp_iter, seed=imp_state, show_number=show_number, val_mode=val_mode, chunk=chunk)
 end
 
 """
@@ -1048,7 +1050,7 @@ end
 """
     rf_importance(R::AbstractRF, regr::RandomForestRegressor,
                   X::Matrix{Float64}, L::Vector{Int};
-                  val_mode::Bool=false,
+                  val_mode::Bool=false, chunk::Bool=true,
                   show_number::Int=20, imp_iter::Int=60,
                   imp_state::UInt64=@seed)
     
@@ -1065,22 +1067,24 @@ Caculate feature importance for a target model, then draw feature importance lis
 - `X::Matrix{Float64}` : `X` data.
 - `L::Vector{Int}` : `L` data.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
+- `chunk::Bool` : increase RAM usage to increase speed.
 - `show_number::Int` : number of locations to show importance.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
 function rf_importance(R::AbstractRF, regr::RandomForestRegressor, X::Matrix{Float64}, L::Vector{Int};
-    val_mode::Bool=false, show_number::Int=20, imp_iter::Int=60, imp_state::UInt64=@seed)
-    return _rf_importance(regr, DataFrame(X, string.(L)), imp_iter, seed=imp_state, val_mode=val_mode, show_number=show_number)
+    val_mode::Bool=false, chunk::Bool=true, show_number::Int=20, imp_iter::Int=60, imp_state::UInt64=@seed)
+    return _rf_importance(regr, DataFrame(X, string.(L)), imp_iter, seed=imp_state, val_mode=val_mode, show_number=show_number, chunk=chunk)
 end
 
 function _rf_importance(regr::RandomForestRegressor, dx::DataFrame, iter::Int=60; 
-                        seed::UInt64=@seed, show_number::Int=20, val_mode::Bool=false, parallel::Bool=true)
+                        seed::UInt64=@seed, show_number::Int=20, val_mode::Bool=false, parallel::Bool=true, chunk::Bool=true)
     data_shap = ShapML.shap(explain = dx,
                     model = regr,
                     predict_function = _rf_dfpredict,
                     parallel = parallel ? :features : :none,
                     sample_size = iter,
+                    chunk = chunk,
                     seed = seed)
     data_plot = combine(groupby(data_shap, :feature_name), :shap_effect => x -> mean(abs.(x)))
     baseline = data_shap.intercept[1]
