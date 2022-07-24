@@ -53,7 +53,7 @@ end
 Return the name of the currently running file.
 """
 macro dataset_name()
-    return :(split(split(@__FILE__, '\\')[end], '.')[1])
+    return :(String(split(split(@__FILE__, '\\')[end], '.')[1]))
 end
 
 # Struct defination
