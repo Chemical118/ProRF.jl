@@ -10,7 +10,7 @@ export train_test_split, test_nrmse, nrmse, min_max_norm, load_model, save_model
 export get_reg_importance, iter_get_reg_importance, parallel_predict
 export get_reg_value, get_reg_value_loc, iter_get_reg_value, rf_importance, rf_model, rf_nrmse
 export data_preprocess_fill, data_preprocess_index
-export @seed, @dataset_loc, @dataset_name
+export @seed
 
 """
 Check julia currently running is interactive or not.
@@ -18,43 +18,6 @@ Check julia currently running is interactive or not.
 You can change the value in [`julia_isinteractive`](@ref).
 """
 _julia_interactive = true
-
-# Macro defination
-
-"""
-Return `UInt64` range integer `MersenneTwister` RNG object seed. keep in mind that when macro executed, the seed is initialized.
-"""
-macro seed()
-    return :(UInt64(rand(Random.seed!(), UInt64)))
-end
-
-"""
-When [`_julia_interactive`](@ref) is on, execute `display(gcf())` or [`_julia_interactive`](@ref) is off, execute `show()` and wait until the user inputs enter.
-"""
-macro show_pyplot()
-    return :(if _julia_interactive == true
-                 display(gcf())
-             else
-                 show()
-                 print("Hit <enter> to continue")
-                 readline() 
-             end;
-             close("all"))
-end
-
-"""
-Return the relative path of dataset based on the name of the currently running file. Please refer to [this](https://github.com/Chemical118/ProRF_example).
-"""
-macro dataset_loc()
-    return :("Data/" * split(split(@__FILE__, '\\')[end], '.')[1])
-end
-
-"""
-Return the name of the currently running file.
-"""
-macro dataset_name()
-    return :(String(split(split(@__FILE__, '\\')[end], '.')[1]))
-end
 
 # Struct defination
 
@@ -69,7 +32,7 @@ Supertype for [`RFI`](@ref).
 abstract type AbstractRFI <: AbstractRF end
 
 """
-    RF(dataset_loc::String=@dataset_loc)
+    RF(dataset_loc::String)
 
     RF(fasta_loc::String, data_loc::String)
 
@@ -97,7 +60,7 @@ end
     RFI(R::AbstractRF,
         nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
 
-    RFI(dataset_loc::String=@dataset_loc,
+    RFI(dataset_loc::String,
         nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int}))
 
     RFI(fasta_loc::String, data_loc::String,
@@ -128,7 +91,7 @@ struct RFI <: AbstractRFI
     ntree::StepRange{Int, Int}
 end
 
-function RF(dataset_loc::String=@dataset_loc)
+function RF(dataset_loc::String)
     l = replace(dataset_loc, "\\" => "/")
     if isfile(l * "/index.txt")
         open(l * "/index.txt") do f
@@ -168,25 +131,31 @@ function RFI(dataset_loc::String, nfeat::StepRange{Int, Int}, ntree::StepRange{I
     end
 end
 
-function RFI(nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
-    dataset_loc = @dataset_loc
-    l = replace(dataset_loc, "\\" => "/")
-    if isfile(l * "/index.txt")
-        open(l * "/index.txt") do f
-            index_str = readlines(f)[1]
-            if ',' ∈ index_str
-                return RFI(l * "/data.fasta", l * "/data.xlsx", parse.(Int, split(index_str, ',')), nfeat, ntree)
-            else
-                return RFI(l * "/data.fasta", l * "/data.xlsx", parse(Int, index_str), nfeat, ntree)
-            end
-        end
-    else
-        return RFI(l * "/data.fasta", l * "/data.xlsx", 1, nfeat, ntree)
-    end
-end
-
 function RFI(fasta_loc::String, data_loc::String, nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
     return RFI(fasta_loc, data_loc, 1, nfeat, ntree)
+end
+
+# Macro defination
+
+"""
+Return `UInt64` range integer `MersenneTwister` RNG object seed. keep in mind that when macro executed, the seed is initialized.
+"""
+macro seed()
+    return :(UInt64(rand(Random.seed!(), UInt64)))
+end
+
+"""
+When [`_julia_interactive`](@ref) is on, execute `display(gcf())` or [`_julia_interactive`](@ref) is off, execute `show()` and wait until the user inputs enter.
+"""
+macro show_pyplot()
+    return :(if _julia_interactive == true
+                 display(gcf())
+             else
+                 show()
+                 print("Hit <enter> to continue")
+                 readline() 
+             end;
+             close("all"))
 end
 
 # Normal function

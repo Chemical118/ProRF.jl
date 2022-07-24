@@ -56,8 +56,6 @@ ProRF._julia_interactive
 julia_isinteractive
 ProRF.@seed
 ProRF.@show_pyplot
-ProRF.@dataset_loc
-ProRF.@dataset_name
 ```
 
 ## Reference
