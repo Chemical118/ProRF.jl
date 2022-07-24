@@ -19,6 +19,36 @@ You can change the value in [`julia_isinteractive`](@ref).
 """
 _julia_interactive = true
 
+# Macro defination
+
+"""
+Return `UInt64` range integer `MersenneTwister` RNG object seed. keep in mind that when macro executed, the seed is initialized.
+"""
+macro seed()
+    return :(UInt64(rand(Random.seed!(), UInt64)))
+end
+
+"""
+When [`_julia_interactive`](@ref) is on, execute `display(gcf())` or [`_julia_interactive`](@ref) is off, execute `show()` and wait until the user inputs enter.
+"""
+macro show_pyplot()
+    return :(if _julia_interactive == true
+                 display(gcf())
+             else
+                 show()
+                 print("Hit <enter> to continue")
+                 readline() 
+             end;
+             close("all"))
+end
+
+"""
+Return the name of the file currently running.
+"""
+macro dataset_name()
+    return split(split(@__FILE__, '\\')[end], '.')[1]
+end
+
 # Struct defination
 
 """
@@ -32,7 +62,7 @@ Supertype for [`RFI`](@ref).
 abstract type AbstractRFI <: AbstractRF end
 
 """
-    RF(dataset_loc::String)
+    RF(dataset_name::String=@dataset_name)
 
     RF(fasta_loc::String, data_loc::String)
 
@@ -45,7 +75,7 @@ julia> R = RF("Data/rgpdata.fasta", "Data/rdata.xlsx");
 ```
 
 # Fields
-- `dataset_loc::String` : location of dataset, `.fasta`, `.xlsx` file name must be `data`. Also, you can designate `amino_loc` through `index.txt`. See [example](https://github.com/Chemical118/ProRF_example/tree/master/Data) folder.
+- `dataset_name::String` : location of dataset, `.fasta`, `.xlsx` file name must be `data`. Also, you can designate `amino_loc` through `index.txt`. See [example](https://github.com/Chemical118/ProRF_example/tree/master/Data) folder.
 - `fasta_loc::String` : location of `.fasta` file.
 - `data_loc::String` : location of `.xlsx` file.
 - `amino_loc::Union{Int, Vector{Int}}` : start index or total index for amino acid (when value is not determined, set to 1).
@@ -60,7 +90,7 @@ end
     RFI(R::AbstractRF,
         nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
 
-    RFI(dataset_loc::String,
+    RFI(dataset_name::String=@dataset_name,
         nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int}))
 
     RFI(fasta_loc::String, data_loc::String,
@@ -76,7 +106,7 @@ julia> RI = RFI("Data/rgpdata.fasta", "Data/rdata.xlsx", 2:1:10, 100:10:500);
 ```
 
 # Fields
-- `dataset_loc::String` : location of dataset, `.fasta`, `.xlsx` file name must be `data`. Also, you can designate `amino_loc` through `index.txt`. See [example](https://github.com/Chemical118/ProRF_example/tree/master/Data) folder.
+- `dataset_name::String` : location of dataset, `.fasta`, `.xlsx` file name must be `data`. Also, you can designate `amino_loc` through `index.txt`. See [example](https://github.com/Chemical118/ProRF_example/tree/master/Data) folder.
 - `fasta_loc::String` : location of `.fasta` file.
 - `data_loc::String` : location of `.xlsx` file.
 - `amino_loc::Union{Int, Vector{Int}}` : start index or total index for amino acid (when value is not determined, set to 1).
@@ -91,8 +121,8 @@ struct RFI <: AbstractRFI
     ntree::StepRange{Int, Int}
 end
 
-function RF(dataset_loc::String)
-    l = replace(dataset_loc, "\\" => "/")
+function RF(dataset_name::String=@dataset_name)
+    l = replace(dataset_name, "\\" => "/")
     if isfile(l * "/index.txt")
         open(l * "/index.txt") do f
             index_str = readlines(f)[1]
@@ -115,8 +145,25 @@ function RFI(R::AbstractRF, nfeat::StepRange{Int, Int}, ntree::StepRange{Int, In
     return RFI(R.fasta_loc, R.data_loc, R.amino_loc, nfeat, ntree)
 end
 
-function RFI(dataset_loc::String, nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
-    l = replace(dataset_loc, "\\" => "/")
+function RFI(dataset_name::String, nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
+    l = replace(dataset_name, "\\" => "/")
+    if isfile(l * "/index.txt")
+        open(l * "/index.txt") do f
+            index_str = readlines(f)[1]
+            if ',' ∈ index_str
+                return RFI(l * "/data.fasta", l * "/data.xlsx", parse.(Int, split(index_str, ',')), nfeat, ntree)
+            else
+                return RFI(l * "/data.fasta", l * "/data.xlsx", parse(Int, index_str), nfeat, ntree)
+            end
+        end
+    else
+        return RFI(l * "/data.fasta", l * "/data.xlsx", 1, nfeat, ntree)
+    end
+end
+
+function RFI(nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
+    dataset_name = @dataset_name
+    l = replace(dataset_name, "\\" => "/")
     if isfile(l * "/index.txt")
         open(l * "/index.txt") do f
             index_str = readlines(f)[1]
@@ -133,29 +180,6 @@ end
 
 function RFI(fasta_loc::String, data_loc::String, nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
     return RFI(fasta_loc, data_loc, 1, nfeat, ntree)
-end
-
-# Macro defination
-
-"""
-Return `UInt64` range integer `MersenneTwister` RNG object seed. keep in mind that when macro executed, the seed is initialized.
-"""
-macro seed()
-    return :(UInt64(rand(Random.seed!(), UInt64)))
-end
-
-"""
-When [`_julia_interactive`](@ref) is on, execute `display(gcf())` or [`_julia_interactive`](@ref) is off, execute `show()` and wait until the user inputs enter.
-"""
-macro show_pyplot()
-    return :(if _julia_interactive == true
-                 display(gcf())
-             else
-                 show()
-                 print("Hit <enter> to continue")
-                 readline() 
-             end;
-             close("all"))
 end
 
 # Normal function
