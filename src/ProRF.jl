@@ -991,7 +991,7 @@ end
 Draw test or train set random forest result and return normalized root mean square error with predict, true value and seed.
 """
 function view_result(pre::Vector{Float64}, tru::Vector{Float64}, data_state::UInt64; test_size::Float64=0.3, nbin::Int=200, test_mode::Bool=true)
-    n = length(Y)
+    n = length(pre)
     idx = shuffle(MersenneTwister(data_state), 1:n)
     ed_idx = test_mode ? view(idx, 1:floor(Int, test_size*n)) : view(idx, (floor(Int, test_size*n)+1):n)
     _view_result(pre[ed_idx], tru[ed_idx], nbin)
