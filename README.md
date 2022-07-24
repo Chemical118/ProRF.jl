@@ -2,8 +2,7 @@
 `ProRF` provides a full process for applying the random forest model of protein sequences using `DecisionTree`.
 
 ## Install
-You must install Python module `Bokeh`, `Matplotlib` before add `ProRF`. For more information, see `PyCall` [main page](https://github.com/JuliaPy/PyCall.jl).
-
+<!-- You must install Python module `Bokeh`, `Matplotlib` before add `ProRF`. For more information, see `PyCall` [main page](https://github.com/JuliaPy/PyCall.jl). -->
 ```julia
 using Pkg
 Pkg.add(url="https://github.com/Chemical118/ProRF.jl")

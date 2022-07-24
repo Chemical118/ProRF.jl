@@ -10,7 +10,7 @@ export train_test_split, test_nrmse, nrmse, min_max_norm, load_model, save_model
 export get_reg_importance, iter_get_reg_importance, parallel_predict
 export get_reg_value, get_reg_value_loc, iter_get_reg_value, rf_importance, rf_model, rf_nrmse
 export data_preprocess_fill, data_preprocess_index
-export @seed
+export @seed, @dataset_name
 
 """
 Check julia currently running is interactive or not.
@@ -43,10 +43,10 @@ macro show_pyplot()
 end
 
 """
-Return the name of the file currently running.
+Returns the relative path of dataset based on the name of the currently running file. Please refer to [this](https://github.com/Chemical118/ProRF_example).
 """
 macro dataset_name()
-    return split(split(@__FILE__, '\\')[end], '.')[1]
+    return :("Data/" * split(split(@__FILE__, '\\')[end], '.')[1])
 end
 
 # Struct defination
