@@ -10,7 +10,7 @@ export train_test_split, test_nrmse, nrmse, min_max_norm, load_model, save_model
 export get_reg_importance, iter_get_reg_importance, parallel_predict
 export get_reg_value, get_reg_value_loc, iter_get_reg_value, rf_importance, rf_model, rf_nrmse
 export data_preprocess_fill, data_preprocess_index
-export @seed, @dataset_name
+export @seed, @dataset_loc, @dataset_name
 
 """
 Check julia currently running is interactive or not.
@@ -43,10 +43,17 @@ macro show_pyplot()
 end
 
 """
-Returns the relative path of dataset based on the name of the currently running file. Please refer to [this](https://github.com/Chemical118/ProRF_example).
+Return the relative path of dataset based on the name of the currently running file. Please refer to [this](https://github.com/Chemical118/ProRF_example).
+"""
+macro dataset_loc()
+    return :("Data/" * split(split(@__FILE__, '\\')[end], '.')[1])
+end
+
+"""
+Return the name of the currently running file.
 """
 macro dataset_name()
-    return :("Data/" * split(split(@__FILE__, '\\')[end], '.')[1])
+    return :(split(split(@__FILE__, '\\')[end], '.')[1])
 end
 
 # Struct defination
@@ -62,7 +69,7 @@ Supertype for [`RFI`](@ref).
 abstract type AbstractRFI <: AbstractRF end
 
 """
-    RF(dataset_name::String=@dataset_name)
+    RF(dataset_loc::String=@dataset_loc)
 
     RF(fasta_loc::String, data_loc::String)
 
@@ -75,7 +82,7 @@ julia> R = RF("Data/rgpdata.fasta", "Data/rdata.xlsx");
 ```
 
 # Fields
-- `dataset_name::String` : location of dataset, `.fasta`, `.xlsx` file name must be `data`. Also, you can designate `amino_loc` through `index.txt`. See [example](https://github.com/Chemical118/ProRF_example/tree/master/Data) folder.
+- `dataset_loc::String` : location of dataset, `.fasta`, `.xlsx` file name must be `data`. Also, you can designate `amino_loc` through `index.txt`. See [example](https://github.com/Chemical118/ProRF_example/tree/master/Data) folder.
 - `fasta_loc::String` : location of `.fasta` file.
 - `data_loc::String` : location of `.xlsx` file.
 - `amino_loc::Union{Int, Vector{Int}}` : start index or total index for amino acid (when value is not determined, set to 1).
@@ -90,7 +97,7 @@ end
     RFI(R::AbstractRF,
         nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
 
-    RFI(dataset_name::String=@dataset_name,
+    RFI(dataset_loc::String=@dataset_loc,
         nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int}))
 
     RFI(fasta_loc::String, data_loc::String,
@@ -106,7 +113,7 @@ julia> RI = RFI("Data/rgpdata.fasta", "Data/rdata.xlsx", 2:1:10, 100:10:500);
 ```
 
 # Fields
-- `dataset_name::String` : location of dataset, `.fasta`, `.xlsx` file name must be `data`. Also, you can designate `amino_loc` through `index.txt`. See [example](https://github.com/Chemical118/ProRF_example/tree/master/Data) folder.
+- `dataset_loc::String` : location of dataset, `.fasta`, `.xlsx` file name must be `data`. Also, you can designate `amino_loc` through `index.txt`. See [example](https://github.com/Chemical118/ProRF_example/tree/master/Data) folder.
 - `fasta_loc::String` : location of `.fasta` file.
 - `data_loc::String` : location of `.xlsx` file.
 - `amino_loc::Union{Int, Vector{Int}}` : start index or total index for amino acid (when value is not determined, set to 1).
@@ -121,8 +128,8 @@ struct RFI <: AbstractRFI
     ntree::StepRange{Int, Int}
 end
 
-function RF(dataset_name::String=@dataset_name)
-    l = replace(dataset_name, "\\" => "/")
+function RF(dataset_loc::String=@dataset_loc)
+    l = replace(dataset_loc, "\\" => "/")
     if isfile(l * "/index.txt")
         open(l * "/index.txt") do f
             index_str = readlines(f)[1]
@@ -145,8 +152,8 @@ function RFI(R::AbstractRF, nfeat::StepRange{Int, Int}, ntree::StepRange{Int, In
     return RFI(R.fasta_loc, R.data_loc, R.amino_loc, nfeat, ntree)
 end
 
-function RFI(dataset_name::String, nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
-    l = replace(dataset_name, "\\" => "/")
+function RFI(dataset_loc::String, nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
+    l = replace(dataset_loc, "\\" => "/")
     if isfile(l * "/index.txt")
         open(l * "/index.txt") do f
             index_str = readlines(f)[1]
@@ -162,8 +169,8 @@ function RFI(dataset_name::String, nfeat::StepRange{Int, Int}, ntree::StepRange{
 end
 
 function RFI(nfeat::StepRange{Int, Int}, ntree::StepRange{Int, Int})
-    dataset_name = @dataset_name
-    l = replace(dataset_name, "\\" => "/")
+    dataset_loc = @dataset_loc
+    l = replace(dataset_loc, "\\" => "/")
     if isfile(l * "/index.txt")
         open(l * "/index.txt") do f
             index_str = readlines(f)[1]
