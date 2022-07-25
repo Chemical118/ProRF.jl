@@ -1220,12 +1220,12 @@ function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Fl
     learn_state_vector = Vector{UInt64}(rand(MersenneTwister(learn_state_seed), UInt64, learn_iter))
     
     memory_estimate = *(size(X)...) / 35000.0
-    n = size(X, 1)
+    data_len = size(X, 1)
     if memory_estimate > memory_usage
-        idx = shuffle(MersenneTwister(imp_state), 1:n)
-        edit_idx = Vector{Int}(idx[1:floor(Int, n * memory_usage / memory_estimate)])
+        idx = shuffle(MersenneTwister(imp_state), 1:data_len)
+        edit_idx = Vector{Int}(idx[1:floor(Int, data_len * memory_usage / memory_estimate)])
     else
-        edit_idx = Vector{Int}(1:n)
+        edit_idx = Vector{Int}(1:data_len)
     end
 
     for (i, data_state) in enumerate(data_state_vector)
