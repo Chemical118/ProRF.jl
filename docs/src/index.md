@@ -77,7 +77,7 @@ M = rf_model(X, Y, N_Feature, N_Tree)
 MeF, SdF = iter_get_reg_importance(R, X, Y, L, N_Feature, N_Tree, 100, val_mode=true)
 view_importance(R, L, MeF, SdF)
 
-for (fe, loc) in sort(collect(zip(MeF, get_amino_loc(R, L))), by = x -> x[1])[1:10]
+for (fe, loc) in sort(collect(zip(MeF, L)), by = x -> x[1])[1:10]
     @printf "Location %s : %.4f\n" loc fe
 end
 ```
