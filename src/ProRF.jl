@@ -385,7 +385,7 @@ julia> M = load_model("model.jld2");
 
 julia> X, Y, L = get_data(R, 9, 'E');
 
-julia> @printf "Total NRMSE : %.6f\\n" nrmse(M, X, Y)
+julia> @printf "Total NRMSE : %.6f\\n" test_nrmse(M, X, Y)
 Total NRMSE : 0.136494
 ```
 Load `RandomForestRegressor` model using `JLD2`, make sure filename extension set to `.jld2`.
