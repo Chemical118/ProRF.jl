@@ -266,7 +266,7 @@ Get raw sequence vector and `L` data to make `X` data and execute `DecisionTree.
 function parallel_predict(regr::RandomForestRegressor, L::Vector{Int}, seq_vector::Vector{String}; convert::Dict{Char, Float64}=ProRF.volume)
     seq_vector = map(x -> x[L], seq_vector)
     test_vector = [[Float64(convert[s]) for s in seq] for seq in seq_vector]
-    return DecisionTree.apply_forest(regr.ensemble, Matrix{Float64}(hcat(test_vector...)), use_multithreading=true)
+    return DecisionTree.apply_forest(regr.ensemble, Matrix{Float64}(vcat(transpose.(test_vector)...)), use_multithreading=true)
 end
 
 """
