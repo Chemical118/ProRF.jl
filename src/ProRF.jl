@@ -709,7 +709,7 @@ function _get_data(R::AbstractRF, ami_arr::Int, excel_col::Char, norm::Bool, con
         error("Please check your convert dictionary")
     end
 
-    excel_data = DataFrame(XLSX.readtable(R.data_loc, sheet, infer_eltypes=title)...)
+    excel_data = DataFrame(XLSX.readtable(R.data_loc, sheet, infer_eltypes=title))
     excel_select_vector = excel_data[!, Int(excel_col) - Int('A') + 1]
     data_idx = findall(!ismissing, excel_select_vector)
     excel_select_vector = Vector{Float64}(excel_select_vector[data_idx])
