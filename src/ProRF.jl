@@ -1149,7 +1149,7 @@ function view_importance(R::AbstractRF, L::Vector{Int}, F::Vector{Float64}; show
     _view_importance(F, string.(L), show_number=show_number)
 end
 
-function view_importance(R::AbstractRF, L::Vector{Int}, F::Vector{String}; show_number::Int=20)
+function view_importance(R::AbstractRF, L::Vector{String}, F::Vector{Float64}; show_number::Int=20)
     _view_importance(F, L, show_number=show_number)
 end
 
