@@ -1127,7 +1127,7 @@ function _view_importance(fe::Vector{Float64}, get_loc::Vector{String}, baseline
 end
 
 """
-    view_importance(R::AbstractRF, L::Vector{Int},
+    view_importance(R::AbstractRF, L::Union{Vector{Int}, Vector{String}},
                     F::Vector{Float64}; show_number::Int=20)
 
 # Examples
@@ -1141,12 +1141,16 @@ Draw feature importance list.
 
 # Arguments
 - `R::AbstractRF` : for both [`RF`](@ref) and [`RFI`](@ref).
-- `L::Vector{Int}` : `L` data.
+- `L::Union{Vector{Int}, Vector{String}}` : `L` data or custom `L` data.
 - `F::Vector{Float64}` : feature importance vector.
 - `show_number::Int` : number of locations to show importance.
 """
 function view_importance(R::AbstractRF, L::Vector{Int}, F::Vector{Float64}; show_number::Int=20)
     _view_importance(F, string.(L), show_number=show_number)
+end
+
+function view_importance(R::AbstractRF, L::Vector{Int}, F::Vector{String}; show_number::Int=20)
+    _view_importance(F, L, show_number=show_number)
 end
 
 function _view_importance(fe::Vector{Float64}, get_loc::Vector{String}; show_number::Int=20)
@@ -1258,7 +1262,7 @@ function _iter_get_reg_importance(X::Matrix{Float64}, x_train::Matrix{Float64}, 
 end
 
 """
-    view_importance(R::AbstractRF, L::Vector{Int},
+    view_importance(R::AbstractRF, L::Union{Vector{Int}, Vector{String}},
                     MF::Vector{Float64}, SF::Vector{Float64};
                     show_number::Int=20)
 
@@ -1271,13 +1275,17 @@ Draw feature importance list with standard deviation.
 
 # Arguments
 - `R::AbstractRF` : for both [`RF`](@ref) and [`RFI`](@ref).
-- `L::Vector{Int}` : `L` data.
+- `L::Union{Vector{Int}, Vector{String}}` : `L` data or custom `L` data.
 - `MF::Vector{Float64}` : mean feature importance vector.
 - `SF::Vector{Float64}` : standard deviation feature importance vector.
 - `show_number::Int` : number of locations to show importance.
 """
 function view_importance(R::AbstractRF, L::Vector{Int}, MF::Vector{Float64}, SF::Vector{Float64}; show_number::Int=20)
     _iter_view_importance(MF, SF, string.(L), show_number=show_number)
+end
+
+function view_importance(R::AbstractRF, L::Vector{String}, MF::Vector{Float64}, SF::Vector{Float64}; show_number::Int=20)
+    _iter_view_importance(MF, SF, L, show_number=show_number)
 end
 
 function _iter_view_importance(fe::Vector{Float64}, err::Vector{Float64}, loc::Vector{String}; show_number::Int=20)
