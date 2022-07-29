@@ -1479,6 +1479,7 @@ end
 
 """
     get_rf_value(X::Matrix{Float64}, Y::Vector{Float64};
+                 val_mode::Bool=false,
                  iter::Int=10, test_size::Float64=0.3,
                  feat_range::Int=4, base_tree::Int=50,
                  memory_usage::Real=4.0,
@@ -1486,13 +1487,14 @@ end
 
 # Examples
 ```julia-repl
-julia> NFeat, NTree, NDepth = get_rf_value(X, Y, iter=5, memory_usage=10);
+julia> NFeat, NTree, NDepth = get_rf_value(X, Y, iter=5, memory_usage=10, val_mode=true);
 ```
 Find best three arguments for random forest.
 
 # Arguments
 - `X::Matrix{Float64}` : `X` data.
 - `Y::Vector{Float64}` : `Y` data.
+- `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `iter::Int` : number of operations iterations.
 - `test_size::Float64` : size of test set.
 - `feat_range::Int` : scope of search for number of selected features.
@@ -1505,14 +1507,17 @@ Find best three arguments for random forest.
 - `opt_tree::Int` : optimized number of trees.
 - `opt_depth::Int` : optimized maximum depth of the tree.
 """
-function get_rf_value(X::Matrix{Float64}, Y::Vector{Float64}; iter::Int=10, test_size::Float64=0.3, feat_range::Int=4, base_tree::Int=50, memory_usage::Real=4.0, max_tree::Int=1000)
+function get_rf_value(X::Matrix{Float64}, Y::Vector{Float64};
+    val_mode::Bool=false, iter::Int=10, test_size::Float64=0.3, feat_range::Int=4, base_tree::Int=50, memory_usage::Real=4.0, max_tree::Int=1000)
     nfea = size(X, 2)
     sfea = floor(Int, sqrt(nfea))
     rfea = max(2, sfea - feat_range):min(nfea, sfea + feat_range)
 
     ans = Vector{Vector{Float64}}()
     for i in 1:iter
-        @printf "Find the number of feature : %d / %d\n" i iter
+        if val_mode == false
+            @printf "Find the number of feature : %d / %d\n" i iter
+        end
         data_state, learn_state = @seed, @seed
         nrmse_vector = Vector{Float64}()
         for fea in rfea
@@ -1520,7 +1525,6 @@ function get_rf_value(X::Matrix{Float64}, Y::Vector{Float64}; iter::Int=10, test
         end
         push!(ans, nrmse_vector)
     end
-    println()
     opt_feat = rfea[argmin(mean.(eachrow(Matrix{Float64}(hcat(ans...)))))]
 
     adep = mean([DecisionTree.depth(tree) for tree in rf_model(X, Y, opt_feat, base_tree, val_mode=true, test_size=test_size).ensemble.trees])
@@ -1529,7 +1533,9 @@ function get_rf_value(X::Matrix{Float64}, Y::Vector{Float64}; iter::Int=10, test
 
     ans = Vector{Vector{Float64}}()
     for i in 1:iter
-        @printf "Find the maximum depth of the tree approximatively : %d / %d\n" i iter
+        if val_mode == false
+            @printf "Find the maximum depth of the tree approximatively : %d / %d\n" i iter
+        end
         data_state, learn_state = @seed, @seed
         nrmse_vector = Vector{Float64}()
         for dep in rdep
@@ -1537,7 +1543,6 @@ function get_rf_value(X::Matrix{Float64}, Y::Vector{Float64}; iter::Int=10, test
         end
         push!(ans, nrmse_vector)
     end
-    println()
     dep_ind = argmin(mean.(eachrow(Matrix{Float64}(hcat(ans...)))))
 
     rdep_st = rdep[max(dep_ind - 1, 1)]
@@ -1546,7 +1551,9 @@ function get_rf_value(X::Matrix{Float64}, Y::Vector{Float64}; iter::Int=10, test
         rdep = rdep_st:10:rdep_nd
         ans = Vector{Vector{Float64}}()
         for i in 1:iter
-            @printf "Find the maximum depth of the tree accurately : %d / %d\n" i iter
+            if val_mode == false
+                @printf "Find the maximum depth of the tree accurately : %d / %d\n" i iter
+            end
             data_state, learn_state = @seed, @seed
             nrmse_vector = Vector{Float64}()
             for dep in rdep
