@@ -3,6 +3,7 @@ using Documenter, ProRF
 makedocs(
     sitename = "ProRF.jl",
     authors = "Ryu Hyunwoo",
+    # format = Documenter.LaTeX(),
     doctest = true,
     modules = [ProRF],
     pages = [
