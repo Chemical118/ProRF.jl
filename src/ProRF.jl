@@ -1020,6 +1020,7 @@ function _view_result(regr::RandomForestRegressor, x_test::Matrix{Float64}, y_te
     axis("square")
     xlim(-max(0, -xlim()[1]), xlim()[2])
     ylim(-max(0, -ylim()[1]), ylim()[2])
+    annotate((@sprintf "NRMSE : %.4f" nrmse_val), (([0.97  0.03] * collect(xlim()))[1] , ([0.05 0.95] * collect(ylim()))[1]))
     plot([-1000, 1000], [-1000, 1000], color="black")
     @show_pyplot
     @printf "NRMSE : %.6f\n" nrmse_val
@@ -1048,6 +1049,7 @@ function _view_result(predict_test::Vector{Float64}, y_test::Vector{Float64}, nb
     axis("square")
     xlim(-max(0, -xlim()[1]), xlim()[2])
     ylim(-max(0, -ylim()[1]), ylim()[2])
+    annotate((@sprintf "NRMSE : %.4f" nrmse_val), (([0.97  0.03] * collect(xlim()))[1] , ([0.05 0.95] * collect(ylim()))[1]))
     plot([-1000, 1000], [-1000, 1000], color="black")
     @show_pyplot
     @printf "NRMSE : %.6f\n" nrmse_val
