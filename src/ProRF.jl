@@ -276,11 +276,37 @@ end
 """
     parallel_predict(regr::RandomForestRegressor, L::Vector{String},
                      seq_vector::Vector{String};
+                     convert::Union{String, Vector{String}}="all")
+
+    parallel_predict(regr::RandomForestRegressor, L::Vector{String},
+                     seq_vector::Vector{String};
                      convert::Union{Dict{Char, Float64},
                                     Vector{Dict{Char, Float64}}}=ProRF.volume)
 
 Get raw sequence vector and `L` data to make `X` data and execute `DecisionTree.predict(regr, X)` in parallel.
 """
+function parallel_predict(regr::RandomForestRegressor, L::Vector{String}, seq_vector::Vector{String}; convert::Union{T, Vector{T}}=ProRF.volume) where T <: Dict{Char}
+    convert_dict = Dict{String, Dict{Char, Float64}}("vol" => ProRF.volume, "pI" => ProRF.pI, "hyd" => ProRF.hydrophobicity)
+    if convert isa String
+        if convert == "all"
+            convert = Vector{String}(collect(keys(convert_dict)))
+        else
+            convert = Vector{String}([convert])
+        end
+    end
+
+    convert_dict_keys = keys(convert_dict)
+    for scon in convert
+        if scon ∉ convert_dict_keys
+            error("Please check the keyword: all, " * join(convert_dict_keys, ", "))
+        end
+    end
+
+    seq_vector = map(x -> x[get_amino_loc(L)], seq_vector)
+    test_vector = [[con[i] for i in seq for con in map(x -> convert_dict[x], convert)] for seq in seq_vector]
+    return DecisionTree.apply_forest(regr.ensemble, Matrix{Float64}(vcat(transpose.(test_vector)...)), use_multithreading=true)
+end
+
 function parallel_predict(regr::RandomForestRegressor, L::Vector{String}, seq_vector::Vector{String}; convert::Union{T, Vector{T}}=ProRF.volume) where T <: Dict{Char}
     seq_vector = map(x -> x[get_amino_loc(L)], seq_vector)
     test_vector = [[con[i] for i in seq for con in _convert_dict(convert)] for seq in seq_vector]
@@ -680,8 +706,16 @@ end
 
 """
     get_data(R::AbstractRF, ami_arr::Int, excel_col::Char; norm::Bool=false,
+             convert::Union{String, Vector{String}}="all",
+             sheet::String="Sheet1", title::Bool=true)
+
+    get_data(R::AbstractRF, ami_arr::Int, excel_col::Char; norm::Bool=false,
              convert::Union{Dict{Char, Float64},
                             Vector{Dict{Char, Float64}}}=ProRF.volume,
+             sheet::String="Sheet1", title::Bool=true)
+
+    get_data(R::AbstractRF, excel_col::Char; norm::Bool=false,
+             convert::Union{String, Vector{String}}="all",
              sheet::String="Sheet1", title::Bool=true)
 
     get_data(R::AbstractRF, excel_col::Char; norm::Bool=false,
@@ -701,7 +735,8 @@ Get data from `.fasta` file by converting selected dictionary and `.xlsx` file a
 - `ami_arr::Int` : baseline for total number of mutations in samples at one location (when value is not determined, set to 1).
 - `excel_col::Char` : column character for `.xlsx` file.
 - `norm::Bool` : execute min-max normalization.
-- `convert::Dict{Char, Float64}` : [Convert dictionary](@ref) that turns amnio acid to value
+- `convert::Union{String, Vector{String}}` : [Convert dictionary](@ref) keywords that turns amnio acid to value. Keywords are `all`, `vol`, `pI`, `hyd`.
+- `convert::Union{Dict{Char, Float64}, Vector{Dict{Char, Float64}}}` : [Convert dictionary](@ref) that turns amnio acid to value.
 - `sheet::String` : `.xlsx` data sheet name
 - `title::Bool` : when `.xlsx` have a header row, turn on `title`.
 
@@ -710,8 +745,48 @@ Get data from `.fasta` file by converting selected dictionary and `.xlsx` file a
 - `Y::Vector{Float64}` : dependent variable data vector.
 - `L::Vector{String}` : sequence index vector.
 """
+function get_data(R::AbstractRF, ami_arr::Int, excel_col::Char; norm::Bool=false, convert::Union{String, Vector{String}}="all", sheet::String="Sheet1", title::Bool=true)
+    convert_dict = Dict{String, Dict{Char, Float64}}("vol" => ProRF.volume, "pI" => ProRF.pI, "hyd" => ProRF.hydrophobicity)
+    if convert isa String
+        if convert == "all"
+            convert = Vector{String}(collect(keys(convert_dict)))
+        else
+            convert = Vector{String}([convert])
+        end
+    end
+
+    convert_dict_keys = keys(convert_dict)
+    for scon in convert
+        if scon ∉ convert_dict_keys
+            error("Please check the keyword: all, " * join(convert_dict_keys, ", "))
+        end
+    end
+
+    _get_data(R, ami_arr, excel_col, norm, map(x -> convert_dict[x], convert), sheet, title)
+end
+
 function get_data(R::AbstractRF, ami_arr::Int, excel_col::Char; norm::Bool=false, convert::Union{T, Vector{T}}=ProRF.volume, sheet::String="Sheet1", title::Bool=true) where T <: Dict{Char}
     _get_data(R, ami_arr, excel_col, norm, _convert_dict(convert), sheet, title)
+end
+
+function get_data(R::AbstractRF, excel_col::Char; norm::Bool=false, convert::Union{String, Vector{String}}="all", sheet::String="Sheet1", title::Bool=true)
+    convert_dict = Dict{String, Dict{Char, Float64}}("vol" => ProRF.volume, "pI" => ProRF.pI, "hyd" => ProRF.hydrophobicity)
+    if convert isa String
+        if convert == "all"
+            convert = Vector{String}(collect(keys(convert_dict)))
+        else
+            convert = Vector{String}([convert])
+        end
+    end
+
+    convert_dict_keys = keys(convert_dict)
+    for scon in convert
+        if scon ∉ convert_dict_keys
+            error("Please check the keyword: all, " * join(convert_dict_keys, ", "))
+        end
+    end
+
+    _get_data(R, 1, excel_col, norm, map(x -> convert_dict[x], convert), sheet, title)
 end
 
 function get_data(R::AbstractRF, excel_col::Char; norm::Bool=false, convert::Union{T, Vector{T}}=ProRF.volume, sheet::String="Sheet1", title::Bool=true) where T <: Dict{Char}
