@@ -160,6 +160,14 @@ end
 
 # Normal function
 
+function _convert_dict(convert::Union{T, Vector{T}}) where T <: Dict{Char}
+    if convert isa Dict{Char}
+        return Vector{Dict{Char, Float64}}([convert])
+    else
+        return Vector{Dict{Char, Float64}}(convert)
+    end
+end
+
 function _norm_dict!(dict::Dict{Char, Float64})
     norm_aa = [('A', 0.0777), ('R', 0.0627), ('N', 0.0336), ('D', 0.0542), ('C', 0.0078), ('Q', 0.0315), ('E', 0.0859), ('G', 0.0730), ('H', 0.0192), ('I', 0.0666), ('L', 0.0891), ('K', 0.0776), ('M', 0.0241), ('F', 0.0361), ('P', 0.0435), ('S', 0.0466), ('T', 0.0487), ('W', 0.0102), ('Y', 0.0300), ('V', 0.0817)]
     dict['X'] = Float64(sum(map(x -> dict[x[1]] * x[2], norm_aa)) / sum(map(x -> x[2], norm_aa)))
@@ -702,15 +710,6 @@ Get data from `.fasta` file by converting selected dictionary and `.xlsx` file a
 - `Y::Vector{Float64}` : dependent variable data vector.
 - `L::Vector{String}` : sequence index vector.
 """
-
-function _convert_dict(convert::Union{T, Vector{T}}) where T <: Dict{Char}
-    if convert isa Dict{Char}
-        return Vector{Dict{Char, Float64}}([convert])
-    else
-        return Vector{Dict{Char, Float64}}(convert)
-    end
-end
-
 function get_data(R::AbstractRF, ami_arr::Int, excel_col::Char; norm::Bool=false, convert::Union{T, Vector{T}}=ProRF.volume, sheet::String="Sheet1", title::Bool=true) where T <: Dict{Char}
     _get_data(R, ami_arr, excel_col, norm, _convert_dict(convert), sheet, title)
 end
