@@ -715,7 +715,7 @@ function get_data(R::AbstractRF, ami_arr::Int, excel_col::Char; norm::Bool=false
     _get_data(R, ami_arr, excel_col, norm, _convert_dict(convert), sheet, title)
 end
 
-function get_data(R::AbstractRF, excel_col::Char; norm::Bool=false, convert::Union{Dict{Char}, Vector{Dict{Char}}}=ProRF.volume, sheet::String="Sheet1", title::Bool=true)
+function get_data(R::AbstractRF, excel_col::Char; norm::Bool=false, convert::Union{T, Vector{T}}=ProRF.volume, sheet::String="Sheet1", title::Bool=true) where T <: Dict{Char}
     _get_data(R, 1, excel_col, norm, _convert_dict(convert), sheet, title)
 end
 
