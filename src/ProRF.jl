@@ -273,7 +273,7 @@ end
 
 Get raw sequence vector and `L` data to make `X` data and execute `DecisionTree.predict(regr, X)` in parallel.
 """
-function parallel_predict(regr::RandomForestRegressor, L::Vector{Int}, seq_vector::Vector{String}; convert::Union{Dict{Char}, Vector{Dict{Char}}}=ProRF.volume)
+function parallel_predict(regr::RandomForestRegressor, L::Vector{Int}, seq_vector::Vector{String}; convert::Union{T, Vector{T}}=ProRF.volume) where T <: Dict{Char}
     seq_vector = map(x -> x[get_amino_loc(L)], seq_vector)
     test_vector = [[con[i] for con in _convert_dict(convert) for i in seq] for seq in seq_vector]
     return DecisionTree.apply_forest(regr.ensemble, Matrix{Float64}(vcat(transpose.(test_vector)...)), use_multithreading=true)
@@ -703,7 +703,7 @@ Get data from `.fasta` file by converting selected dictionary and `.xlsx` file a
 - `L::Vector{String}` : sequence index vector.
 """
 
-function _convert_dict(convert::Union{Dict{Char}, Vector{Dict{Char}}})
+function _convert_dict(convert::Union{T, Vector{T}}) where T <: Dict{Char}
     if convert isa Dict{Char}
         return Vector{Dict{Char, Float64}}([convert])
     else
@@ -711,7 +711,7 @@ function _convert_dict(convert::Union{Dict{Char}, Vector{Dict{Char}}})
     end
 end
 
-function get_data(R::AbstractRF, ami_arr::Int, excel_col::Char; norm::Bool=false, convert::Union{Dict{Char}, Vector{Dict{Char}}}=ProRF.volume, sheet::String="Sheet1", title::Bool=true)
+function get_data(R::AbstractRF, ami_arr::Int, excel_col::Char; norm::Bool=false, convert::Union{T, Vector{T}}=ProRF.volume, sheet::String="Sheet1", title::Bool=true) where T <: Dict{Char}
     _get_data(R, ami_arr, excel_col, norm, _convert_dict(convert), sheet, title)
 end
 
