@@ -273,10 +273,9 @@ end
 
 Get raw sequence vector and `L` data to make `X` data and execute `DecisionTree.predict(regr, X)` in parallel.
 """
-function parallel_predict(regr::RandomForestRegressor, L::Vector{Int}, seq_vector::Vector{String}; convert::Union{Dict{Char, T}, Vector{Dict{Char, T}}}=ProRF.volume) where T <: Real
-    convert = Vector{Dict{Char, Float64}}([convert])
+function parallel_predict(regr::RandomForestRegressor, L::Vector{Int}, seq_vector::Vector{String}; convert::Union{Dict{Char}, Vector{Dict{Char}}}=ProRF.volume)
     seq_vector = map(x -> x[get_amino_loc(L)], seq_vector)
-    test_vector = [[con[i] for con in convert for i in seq] for seq in seq_vector]
+    test_vector = [[con[i] for con in _convert_dict(convert) for i in seq] for seq in seq_vector]
     return DecisionTree.apply_forest(regr.ensemble, Matrix{Float64}(vcat(transpose.(test_vector)...)), use_multithreading=true)
 end
 
@@ -673,12 +672,12 @@ end
 
 """
     get_data(R::AbstractRF, ami_arr::Int, excel_col::Char; norm::Bool=false,
-             convert::Union{Dict{Char, Float64}
+             convert::Union{Dict{Char, Float64},
                             Vector{Dict{Char, Float64}}}=ProRF.volume,
              sheet::String="Sheet1", title::Bool=true)
 
     get_data(R::AbstractRF, excel_col::Char; norm::Bool=false,
-             convert::Union{Dict{Char, Float64}
+             convert::Union{Dict{Char, Float64},
                             Vector{Dict{Char, Float64}}}=ProRF.volume,
              sheet::String="Sheet1", title::Bool=true)
 
@@ -703,12 +702,21 @@ Get data from `.fasta` file by converting selected dictionary and `.xlsx` file a
 - `Y::Vector{Float64}` : dependent variable data vector.
 - `L::Vector{String}` : sequence index vector.
 """
-function get_data(R::AbstractRF, ami_arr::Int, excel_col::Char; norm::Bool=false, convert::Union{Dict{Char, T}, Vector{Dict{Char, T}}}=ProRF.volume, sheet::String="Sheet1", title::Bool=true) where T <: Real
-    _get_data(R, ami_arr, excel_col, norm, Vector{Dict{Char, Float64}}([convert]), sheet, title)
+
+function _convert_dict(convert::Union{Dict{Char}, Vector{Dict{Char}}})
+    if convert isa Dict{Char}
+        return Vector{Dict{Char, Float64}}([convert])
+    else
+        return Vector{Dict{Char, Float64}}(convert)
+    end
 end
 
-function get_data(R::AbstractRF, excel_col::Char; norm::Bool=false, convert::Union{Dict{Char, T}, Vector{Dict{Char, T}}}=ProRF.volume, sheet::String="Sheet1", title::Bool=true) where T <: Real
-    _get_data(R, 1, excel_col, norm, Vector{Dict{Char, Float64}}([convert]), sheet, title)
+function get_data(R::AbstractRF, ami_arr::Int, excel_col::Char; norm::Bool=false, convert::Union{Dict{Char}, Vector{Dict{Char}}}=ProRF.volume, sheet::String="Sheet1", title::Bool=true)
+    _get_data(R, ami_arr, excel_col, norm, _convert_dict(convert), sheet, title)
+end
+
+function get_data(R::AbstractRF, excel_col::Char; norm::Bool=false, convert::Union{Dict{Char}, Vector{Dict{Char}}}=ProRF.volume, sheet::String="Sheet1", title::Bool=true)
+    _get_data(R, 1, excel_col, norm, _convert_dict(convert), sheet, title)
 end
 
 function _get_data(R::AbstractRF, ami_arr::Int, excel_col::Char, norm::Bool, convert::Vector{Dict{Char, Float64}}, sheet::String, title::Bool)
