@@ -283,7 +283,7 @@ Get raw sequence vector and `L` data to make `X` data and execute `DecisionTree.
 """
 function parallel_predict(regr::RandomForestRegressor, L::Vector{String}, seq_vector::Vector{String}; convert::Union{T, Vector{T}}=ProRF.volume) where T <: Dict{Char}
     seq_vector = map(x -> x[get_amino_loc(L)], seq_vector)
-    test_vector = [[con[i] for con in _convert_dict(convert) for i in seq] for seq in seq_vector]
+    test_vector = [[con[i] for i in seq for con in _convert_dict(convert)] for seq in seq_vector]
     return DecisionTree.apply_forest(regr.ensemble, Matrix{Float64}(vcat(transpose.(test_vector)...)), use_multithreading=true)
 end
 
@@ -745,8 +745,10 @@ function _get_data(R::AbstractRF, ami_arr::Int, excel_col::Char, norm::Bool, con
     if R.amino_loc isa Int
         for (ind, (dict, col)) in enumerate(zip(loc_dict_vector, eachcol(seq_matrix)))
             max_val = maximum(values(dict))
-            if '-' ∉ keys(dict) && ami_arr ≤ data_len - max_val 
-                push!(x_col_vector, [con[i] for con in convert for i in col])
+            if '-' ∉ keys(dict) && ami_arr ≤ data_len - max_val
+                for con in convert
+                    push!(x_col_vector, [con[i] for i in col])
+                end
                 push!(loc_vector, ind + R.amino_loc - 1)
             end
         end
