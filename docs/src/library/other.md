@@ -10,6 +10,7 @@ test_nrmse
 min_max_norm
 save_model
 load_model
+get_amino_loc
 parallel_predict
 ```
 
