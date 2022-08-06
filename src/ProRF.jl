@@ -768,8 +768,8 @@ function _get_data(R::AbstractRF, ami_arr::Int, excel_col::Char, norm::Bool, con
     end
 
     sloc_vevtor = Vector{String}()
-    for i in range('a', length=length(convert))
-        for sloc in string.(loc_vector)
+    for sloc in string.(loc_vector)
+        for i in range('a', length=length(convert))
             push!(sloc_vevtor, sloc * i)
         end
     end
