@@ -266,14 +266,14 @@ function parallel_predict(regr::RandomForestRegressor, X::Matrix{Float64})
 end
 
 """
-    parallel_predict(regr::RandomForestRegressor, L::Vector{Int},
+    parallel_predict(regr::RandomForestRegressor, L::Vector{String},
                      seq_vector::Vector{String};
                      convert::Union{Dict{Char, Float64},
                                     Vector{Dict{Char, Float64}}}=ProRF.volume)
 
 Get raw sequence vector and `L` data to make `X` data and execute `DecisionTree.predict(regr, X)` in parallel.
 """
-function parallel_predict(regr::RandomForestRegressor, L::Vector{Int}, seq_vector::Vector{String}; convert::Union{T, Vector{T}}=ProRF.volume) where T <: Dict{Char}
+function parallel_predict(regr::RandomForestRegressor, L::Vector{String}, seq_vector::Vector{String}; convert::Union{T, Vector{T}}=ProRF.volume) where T <: Dict{Char}
     seq_vector = map(x -> x[get_amino_loc(L)], seq_vector)
     test_vector = [[con[i] for con in _convert_dict(convert) for i in seq] for seq in seq_vector]
     return DecisionTree.apply_forest(regr.ensemble, Matrix{Float64}(vcat(transpose.(test_vector)...)), use_multithreading=true)
@@ -825,7 +825,7 @@ end
 
 """
     get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64},
-                       L::Vector{Int}, feat::Int, tree::Int;
+                       L::Vector{String}, feat::Int, tree::Int;
                        val_mode::Bool=false, test_size::Float64=0.3,
                        memory_usage::Real=4.0,
                        nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
