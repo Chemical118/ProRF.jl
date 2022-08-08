@@ -831,7 +831,9 @@ function _get_data(R::AbstractRF, ami_arr::Int, excel_col::Char, norm::Bool, con
         for (dict, col) in zip(loc_dict_vector, eachcol(seq_matrix))
             max_val = maximum(values(dict))
             if '-' ∉ keys(dict) && ami_arr ≤ data_len - max_val 
-                push!(x_col_vector, [con[i] for con in convert for i in col])
+                for con in convert
+                    push!(x_col_vector, [con[i] for i in col])
+                end
             end
         end
 
