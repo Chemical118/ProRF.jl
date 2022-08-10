@@ -1266,7 +1266,7 @@ function _view_importance(F::Vector{Float64}, L::Vector{String}, baseline::Float
     ylabel("Amino acid Location")
     PyPlot.title("Feature Importance - Mean Absolute Shapley Value")
     @show_pyplot
-    println(3)
+
     if length(get_amino_loc(L)) < length(L)
         _draw_importance(L, F, show_number, index)
     end
