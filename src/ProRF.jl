@@ -1245,7 +1245,7 @@ function _draw_importance(L::Vector{String}, F::Vector{Float64}, show_number::In
     value_matrix = value_matrix[sort_idx, :]
     NumL = NumL[sort_idx]
     for (col, ti) in zip(eachcol(value_matrix), index)
-        scatter(1:show_number, col[1:show_number], label=ti)
+        scatter(1:show_number, col[1:show_number], label=string(ti))
     end
     legend()
     PyPlot.xticks(1:show_number, labels=string.(NumL[1:show_number]), rotation=45)
