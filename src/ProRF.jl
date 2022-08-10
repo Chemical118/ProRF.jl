@@ -1255,7 +1255,7 @@ function _draw_importance(L::Vector{String}, F::Vector{Float64}, show_number::In
     close("all")
 end
 
-function _view_importance(fe::Vector{Float64}, get_loc::Vector{String}, baseline::Float64;show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing)
+function _view_importance(fe::Vector{Float64}, get_loc::Vector{String}, baseline::Float64; show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing)
     data_len = length(fe)
     show_number = min(data_len, show_number)
     sorted_idx = sortperm(fe, rev=true)
