@@ -906,7 +906,9 @@ end
                        L::Vector{String}, feat::Int, tree::Int;
                        val_mode::Bool=false, test_size::Float64=0.3,
                        memory_usage::Real=4.0,
-                       nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
+                       nbin::Int=200, show_number::Int=20, 
+                       index::Union{Nothing, Vector{String}}=nothing,
+                       imp_iter::Int=60,
                        max_depth::Int=-1,
                        min_samples_leaf::Int=1,
                        min_samples_split::Int=2,
@@ -936,6 +938,7 @@ Caculate regression model and feature importance, then draw random forest result
 - `memory_usage::Real` : available memory capacity (GB)
 - `nbin::Int` : the number of bins for each two dimensions to execute kernel density estimation.
 - `show_number::Int` : number of locations to show importance.
+- `index::Union{Nothing, Vector{String}}` : index of convert dictionary.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
 - `max_depth::Int` : maximum depth of the tree.
 - `min_samples_leaf::Int` : minimum number of samples required to be at a leaf node.
@@ -945,7 +948,7 @@ Caculate regression model and feature importance, then draw random forest result
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
 function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{String}, feat::Int, tree::Int;
-    val_mode::Bool=false, test_size::Float64=0.3, memory_usage::Real=4.0, nbin::Int=200, show_number::Int=20, imp_iter::Int=60,
+    val_mode::Bool=false, test_size::Float64=0.3, memory_usage::Real=4.0, nbin::Int=200, show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing, imp_iter::Int=60,
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
     data_state::UInt64=@seed, learn_state::UInt64=@seed, imp_state::UInt64=@seed)
     
@@ -963,7 +966,7 @@ function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64
         edit_idx = view(idx, 1:floor(Int, n * memory_usage / memory_estimate))
         X = X[edit_idx, :]
     end
-    return regr, _rf_importance(regr, DataFrame(X, L), imp_iter, seed=imp_state, show_number=show_number, val_mode=val_mode)
+    return regr, _rf_importance(regr, DataFrame(X, L), imp_iter, seed=imp_state, show_number=show_number, val_mode=val_mode, index=index)
 end
 
 """
@@ -1168,7 +1171,9 @@ end
                   X::Matrix{Float64}, L::Vector{String};
                   val_mode::Bool=false,
                   memory_usage::Real=4.0,
-                  show_number::Int=20, imp_iter::Int=60,
+                  show_number::Int=20, 
+                  index::Union{Nothing, Vector{String}}=nothing,
+                  imp_iter::Int=60,
                   imp_state::UInt64=@seed)
     
 # Examples
@@ -1186,11 +1191,12 @@ Caculate feature importance for a target model, then draw feature importance lis
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
 - `memory_usage::Real` : available memory capacity (GB)
 - `show_number::Int` : number of locations to show importance.
+- `index::Union{Nothing, Vector{String}}` : index of convert dictionary.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
 function rf_importance(R::AbstractRF, regr::RandomForestRegressor, X::Matrix{Float64}, L::Vector{String};
-    val_mode::Bool=false, memory_usage::Real=4.0, show_number::Int=20, imp_iter::Int=60, imp_state::UInt64=@seed)
+    val_mode::Bool=false, memory_usage::Real=4.0, show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing, imp_iter::Int=60, imp_state::UInt64=@seed)
     memory_estimate = *(size(X)...) / 35000.0
     if memory_estimate > memory_usage
         n = size(X, 1)
@@ -1198,11 +1204,11 @@ function rf_importance(R::AbstractRF, regr::RandomForestRegressor, X::Matrix{Flo
         edit_idx = view(idx, 1:floor(Int, n * memory_usage / memory_estimate))
         X = X[edit_idx, :]
     end
-    return _rf_importance(regr, DataFrame(X, L), imp_iter, seed=imp_state, val_mode=val_mode, show_number=show_number)
+    return _rf_importance(regr, DataFrame(X, L), imp_iter, seed=imp_state, val_mode=val_mode, show_number=show_number, index=index)
 end
 
 function _rf_importance(regr::RandomForestRegressor, dx::DataFrame, iter::Int=60; 
-                        seed::UInt64=@seed, show_number::Int=20, val_mode::Bool=false, parallel::Bool=true)
+                        seed::UInt64=@seed, show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing, val_mode::Bool=false, parallel::Bool=true)
     data_shap = ShapML.shap(explain = dx,
                     model = regr,
                     predict_function = _rf_dfpredict,
@@ -1213,7 +1219,7 @@ function _rf_importance(regr::RandomForestRegressor, dx::DataFrame, iter::Int=60
     baseline = data_shap.intercept[1]
     feature_importance = data_plot[!, :shap_effect_function] ./ abs(baseline)
     if val_mode == false
-        _view_importance(feature_importance, data_plot[!, :feature_name], baseline, show_number=show_number)
+        _view_importance(feature_importance, data_plot[!, :feature_name], baseline, show_number=show_number, index=index)
     end
     return feature_importance
 end
@@ -1222,7 +1228,34 @@ function _rf_dfpredict(regr::RandomForestRegressor, x::DataFrame)
     return DataFrame(y_pred = parallel_predict(regr, Matrix{Float64}(x)))
 end
 
-function _view_importance(fe::Vector{Float64}, get_loc::Vector{String}, baseline::Float64; show_number::Int=20)
+function _draw_importance(L::Vector{String}, F::Vector{Float64}, show_number::Int, index::Union{Nothing, Vector{String}})
+    NumL = get_amino_loc(L)
+    num_dict = Int(length(L) / length(NumL))
+    if index isa Nothing
+        index = range('a', length=num_dict)
+    else
+        if length(index) != num_dict
+            error("Please check your dictionary index")
+        end
+    end
+
+    show_number = min(Int(length(F) / 3), show_number)
+    value_matrix = reshape(F, (3, Int(length(F) / 3)))' ./ maximum(F)
+    sort_idx = sortperm(maximum(value_matrix, dims=2)[:, 1], rev=true)
+    value_matrix = value_matrix[sort_idx, :]
+    NumL = NumL[sort_idx]
+    for (col, ti) in zip(eachcol(value_matrix), index)
+        scatter(1:show_number, col[1:show_number], label=ti)
+    end
+    legend()
+    PyPlot.xticks(1:show_number, labels=string.(NumL[1:show_number]), rotation=45)
+    xlabel("AA index")
+    ylabel("Feature Importance")
+    display(gcf())
+    close("all")
+end
+
+function _view_importance(fe::Vector{Float64}, get_loc::Vector{String}, baseline::Float64;show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing)
     data_len = length(fe)
     show_number = min(data_len, show_number)
     sorted_idx = sortperm(fe, rev=true)
@@ -1233,11 +1266,16 @@ function _view_importance(fe::Vector{Float64}, get_loc::Vector{String}, baseline
     ylabel("Amino acid Location")
     PyPlot.title("Feature Importance - Mean Absolute Shapley Value")
     @show_pyplot
+
+    if length(get_amino_loc(L)) > length(L)
+        _draw_importance(L, F, show_number, index)
+    end
 end
 
 """
     view_importance(R::AbstractRF, L::Vector{String},
-                    F::Vector{Float64}; show_number::Int=20)
+                    F::Vector{Float64}; show_number::Int=20,
+                    index::Union{Nothing, Vector{String}}=nothing)
 
 # Examples
 ```julia-repl
@@ -1253,12 +1291,13 @@ Draw feature importance list.
 - `L::Vector{String}` : `L` data.
 - `F::Vector{Float64}` : feature importance vector.
 - `show_number::Int` : number of locations to show importance.
+- `index::Union{Nothing, Vector{String}}` : index of convert dictionary.
 """
-function view_importance(R::AbstractRF, L::Vector{String}, F::Vector{Float64}; show_number::Int=20)
-    _view_importance(F, L, show_number=show_number)
+function view_importance(R::AbstractRF, L::Vector{String}, F::Vector{Float64}; show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing)
+    _view_importance(F, L, show_number=show_number, index=index)
 end
 
-function _view_importance(fe::Vector{Float64}, get_loc::Vector{String}; show_number::Int=20)
+function _view_importance(fe::Vector{Float64}, get_loc::Vector{String}; show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing)
     data_len = length(fe)
     fe ./= maximum(fe)
     show_number = min(data_len, show_number)
@@ -1270,6 +1309,10 @@ function _view_importance(fe::Vector{Float64}, get_loc::Vector{String}; show_num
     ylabel("Amino acid Location")
     PyPlot.title("Relative Mean Absolute Shapley Value")
     @show_pyplot
+
+    if length(get_amino_loc(L)) > length(L)
+        _draw_importance(L, F, show_number, index)
+    end
 end
 
 """
