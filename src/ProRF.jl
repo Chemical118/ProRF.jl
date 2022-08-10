@@ -1255,19 +1255,19 @@ function _draw_importance(L::Vector{String}, F::Vector{Float64}, show_number::In
     close("all")
 end
 
-function _view_importance(fe::Vector{Float64}, get_loc::Vector{String}, baseline::Float64; show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing)
-    data_len = length(fe)
+function _view_importance(F::Vector{Float64}, L::Vector{String}, baseline::Float64; show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing)
+    data_len = length(F)
     show_number = min(data_len, show_number)
-    sorted_idx = sortperm(fe, rev=true)
+    sorted_idx = sortperm(F, rev=true)
     bar_pos = collect(data_len:-1:1) .- 0.5
-    barh(bar_pos[1:show_number], fe[sorted_idx][1:show_number], align="center")
-    yticks(bar_pos[1:show_number], get_loc[sorted_idx][1:show_number])
+    barh(bar_pos[1:show_number], F[sorted_idx][1:show_number], align="center")
+    yticks(bar_pos[1:show_number], L[sorted_idx][1:show_number])
     xlabel(@sprintf "|Shapley effect| (baseline = %.2f)" baseline)
     ylabel("Amino acid Location")
     PyPlot.title("Feature Importance - Mean Absolute Shapley Value")
     @show_pyplot
-
-    if length(get_amino_loc(L)) > length(L)
+    println(3)
+    if length(get_amino_loc(L)) < length(L)
         _draw_importance(L, F, show_number, index)
     end
 end
