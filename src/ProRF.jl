@@ -1297,14 +1297,14 @@ function view_importance(R::AbstractRF, L::Vector{String}, F::Vector{Float64}; s
     _view_importance(F, L, show_number=show_number, index=index)
 end
 
-function _view_importance(fe::Vector{Float64}, get_loc::Vector{String}; show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing)
-    data_len = length(fe)
-    fe ./= maximum(fe)
+function _view_importance(F::Vector{Float64}, L::Vector{String}; show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing)
+    data_len = length(F)
+    F ./= maximum(F)
     show_number = min(data_len, show_number)
-    sorted_idx = sortperm(fe, rev=true)
+    sorted_idx = sortperm(F, rev=true)
     bar_pos = collect(data_len:-1:1) .- 0.5
-    barh(bar_pos[1:show_number], fe[sorted_idx][1:show_number], align="center")
-    yticks(bar_pos[1:show_number], get_loc[sorted_idx][1:show_number])
+    barh(bar_pos[1:show_number], F[sorted_idx][1:show_number], align="center")
+    yticks(bar_pos[1:show_number], L[sorted_idx][1:show_number])
     xlabel("Feature Importance")
     ylabel("Amino acid Location")
     PyPlot.title("Relative Mean Absolute Shapley Value")
