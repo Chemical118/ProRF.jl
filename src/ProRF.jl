@@ -1208,11 +1208,11 @@ function rf_importance(R::AbstractRF, regr::RandomForestRegressor, X::Matrix{Flo
 end
 
 function _rf_importance(regr::RandomForestRegressor, dx::DataFrame, iter::Int=60; 
-                        seed::UInt64=@seed, show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing, val_mode::Bool=false, parallel::Bool=true)
+                        seed::UInt64=@seed, show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing, val_mode::Bool=false)
     data_shap = ShapML.shap(explain = dx,
                     model = regr,
                     predict_function = _rf_dfpredict,
-                    parallel = parallel ? :features : :none,
+                    parallel = :none,
                     sample_size = iter,
                     seed = seed)
     data_plot = combine(groupby(data_shap, :feature_name), :shap_effect => x -> mean(abs.(x)))
@@ -1405,7 +1405,7 @@ end
 function _iter_get_reg_importance(X::Matrix{Float64}, x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, loc::Vector{String}, feat::Int, tree::Int, imp_iter::Int, max_depth::Int, min_samples_leaf::Int, min_samples_split::Int, imp_state::UInt64, learn_state::UInt64, edit_idx::Vector{Int})
     regr = _randomforestregressor(feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
     DecisionTree.fit!(regr, x_train, y_train)
-    return _rf_importance(regr, DataFrame(X[edit_idx, :], loc), imp_iter, seed=imp_state, val_mode=true, parallel=false), test_nrmse(regr, x_test, y_test)
+    return _rf_importance(regr, DataFrame(X[edit_idx, :], loc), imp_iter, seed=imp_state, val_mode=true), test_nrmse(regr, x_test, y_test)
 end
 
 """
