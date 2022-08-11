@@ -1310,7 +1310,7 @@ function _view_importance(F::Vector{Float64}, L::Vector{String}; show_number::In
     PyPlot.title("Relative Mean Absolute Shapley Value")
     @show_pyplot
 
-    if length(get_amino_loc(L)) > length(L)
+    if length(get_amino_loc(L)) < length(L)
         _draw_importance(L, F, show_number, index)
     end
 end
