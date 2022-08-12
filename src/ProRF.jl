@@ -1251,8 +1251,7 @@ function _draw_importance(L::Vector{String}, F::Vector{Float64}, show_number::In
     PyPlot.xticks(1:show_number, labels=string.(NumL[1:show_number]), rotation=45)
     xlabel("AA index")
     ylabel("Feature Importance")
-    display(gcf())
-    close("all")
+    @show_pyplot
 end
 
 function _view_importance(F::Vector{Float64}, L::Vector{String}, baseline::Float64; show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing)
