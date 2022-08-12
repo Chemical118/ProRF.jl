@@ -1239,8 +1239,8 @@ function _draw_importance(L::Vector{String}, F::Vector{Float64}, show_number::In
         end
     end
 
-    show_number = min(Int(length(F) / 3), show_number)
-    value_matrix = reshape(F, (3, Int(length(F) / 3)))' ./ maximum(F)
+    show_number = min(Int(length(F) / num_dict), show_number)
+    value_matrix = reshape(F, (num_dict, Int(length(F) / num_dict)))' ./ maximum(F)
     sort_idx = sortperm(maximum(value_matrix, dims=2)[:, 1], rev=true)
     value_matrix = value_matrix[sort_idx, :]
     NumL = NumL[sort_idx]
