@@ -72,7 +72,7 @@ R = RF("Data/jealgpdata.fasta", "Data/data.xlsx")
 X, Y, L = get_data(R, 2, 'D', convert=myDict)
 
 M = rf_model(X, Y, N_Feature, N_Tree)
-@printf "Total NRMSE : %.6f\n" nrmse(M, X, Y)
+@printf "Total NRMSE : %.6f\n" test_nrmse(M, X, Y)
 
 MeF, SdF = iter_get_reg_importance(R, X, Y, L, N_Feature, N_Tree, 100, val_mode=true)
 view_importance(R, L, MeF, SdF)
