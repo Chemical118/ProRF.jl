@@ -1448,6 +1448,12 @@ function _iter_view_importance(fe::Vector{Float64}, err::Vector{Float64}, loc::V
     ylabel("Amino acid Location")
     PyPlot.title("Relative Mean Absolute Shapley Value")
     @show_pyplot
+
+    try
+        if length(get_amino_loc(L)) < length(L)
+            _draw_importance(L, F, show_number, index)
+        end
+    catch; end
 end
 
 # RFI function
