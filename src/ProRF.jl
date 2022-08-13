@@ -1434,16 +1434,16 @@ function view_importance(R::AbstractRF, L::Vector{String}, MF::Vector{Float64}, 
     _iter_view_importance(MF, SF, L, show_number=show_number)
 end
 
-function _iter_view_importance(fe::Vector{Float64}, err::Vector{Float64}, loc::Vector{String}; show_number::Int=20)
-    data_len = length(fe)
-    norm_val = maximum(fe)
-    fe ./= norm_val
-    err ./= norm_val
+function _iter_view_importance(MF::Vector{Float64}, SF::Vector{Float64}, L::Vector{String}; show_number::Int=20)
+    data_len = length(MF)
+    norm_val = maximum(MF)
+    MF ./= norm_val
+    SF ./= norm_val
     show_number = min(data_len, show_number)
-    sorted_idx = sortperm(fe, rev=true)
+    sorted_idx = sortperm(MF, rev=true)
     bar_pos = collect(data_len:-1:1) .- 0.5
-    barh(bar_pos[1:show_number], fe[sorted_idx][1:show_number], xerr=err[sorted_idx][1:show_number], align="center", capsize=2)
-    yticks(bar_pos[1:show_number], loc[sorted_idx][1:show_number])
+    barh(bar_pos[1:show_number], MF[sorted_idx][1:show_number], xerr=SF[sorted_idx][1:show_number], align="center", capsize=2)
+    yticks(bar_pos[1:show_number], L[sorted_idx][1:show_number])
     xlabel("Feature Importance")
     ylabel("Amino acid Location")
     PyPlot.title("Relative Mean Absolute Shapley Value")
@@ -1451,7 +1451,7 @@ function _iter_view_importance(fe::Vector{Float64}, err::Vector{Float64}, loc::V
 
     try
         if length(get_amino_loc(L)) < length(L)
-            _draw_importance(L, F, show_number, index)
+            _draw_importance(L, MF, show_number, index)
         end
     catch; end
 end
