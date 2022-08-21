@@ -1353,6 +1353,7 @@ Returns the mean and standard deviation of feature importance.
 - `test_size::Float64` : size of test set.
 - `memory_usage::Real` : available memory capacity (GB)
 - `show_number::Int` : number of locations to show importance.
+- `index::Union{Nothing, Vector{String}}` : index of convert dictionary.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
 - `max_depth::Int` : maximum depth of the tree.
 - `min_samples_leaf::Int` : minimum number of samples required to be at a leaf node.
@@ -1362,7 +1363,8 @@ Returns the mean and standard deviation of feature importance.
 - `imp_state::UInt64` : seed used to caculate a feature importance.
 """
 function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{String}, feat::Int, tree::Int, data_iter::Int, learn_iter::Int;
-    val_mode::Bool=false, test_size::Float64=0.3, memory_usage::Real=4.0, show_number::Int=20, imp_iter::Int=60,
+    val_mode::Bool=false, test_size::Float64=0.3, memory_usage::Real=4.0, show_number::Int=20,
+    index::Union{Nothing, Vector{String}}=nothing, imp_iter::Int=60,
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
     data_state_seed::UInt64=@seed, learn_state_seed::UInt64=@seed, imp_state::UInt64=@seed)
 
@@ -1398,7 +1400,7 @@ function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Fl
     end
 
     if val_mode == false
-        _iter_view_importance(mf, sf, L, show_number=show_number)
+        _iter_view_importance(mf, sf, L, show_number=show_number, index=index)
         @printf "NRMSE : %.6f\n" mean(n)
     end
 
@@ -1429,12 +1431,13 @@ Draw feature importance list with standard deviation.
 - `MF::Vector{Float64}` : mean feature importance vector.
 - `SF::Vector{Float64}` : standard deviation feature importance vector.
 - `show_number::Int` : number of locations to show importance.
+- `index::Union{Nothing, Vector{String}}` : index of convert dictionary.
 """
-function view_importance(R::AbstractRF, L::Vector{String}, MF::Vector{Float64}, SF::Vector{Float64}; show_number::Int=20)
-    _iter_view_importance(MF, SF, L, show_number=show_number)
+function view_importance(R::AbstractRF, L::Vector{String}, MF::Vector{Float64}, SF::Vector{Float64}; show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing)
+    _iter_view_importance(MF, SF, L, show_number=show_number, index=index)
 end
 
-function _iter_view_importance(MF::Vector{Float64}, SF::Vector{Float64}, L::Vector{String}; show_number::Int=20)
+function _iter_view_importance(MF::Vector{Float64}, SF::Vector{Float64}, L::Vector{String}; show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing)
     data_len = length(MF)
     norm_val = maximum(MF)
     MF ./= norm_val
