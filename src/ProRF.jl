@@ -316,6 +316,37 @@ function parallel_predict(regr::RandomForestRegressor, L::Vector{String}, seq_ve
     return DecisionTree.apply_forest(regr.ensemble, Matrix{Float64}(vcat(transpose.(test_vector)...)), use_multithreading=true)
 end
 
+function _parallel_transform(L::Vector{String}, seq_vector::Vector{String}; convert::Union{String, Vector{String}, T, Vector{T}}="all") where T <: Dict{Char}
+    if convert isa String || convert isa Vector{String}
+        convert_dict = Dict{String, Dict{Char, Float64}}("vol" => ProRF.volume, "pI" => ProRF.pI, "hyd" => ProRF.hydrophobicity)
+        if convert isa String
+            if convert == "all"
+                convert = Vector{String}(collect(keys(convert_dict)))
+            else
+                convert = Vector{String}([convert])
+            end
+        end
+
+        convert_dict_keys = keys(convert_dict)
+        for scon in convert
+            if scon ∉ convert_dict_keys
+                error("Please check the keyword: all, " * join(convert_dict_keys, ", "))
+            end
+        end
+
+        convert = map(x -> convert_dict[x], convert)
+    else
+        convert = _convert_dict(convert)
+    end
+
+    NumL = get_amino_loc(L)
+    test_vector = Array{Vector{Float64}}(undef, length(seq_vector))
+    Threads.@threads for i in eachindex(seq_vector)
+        test_vector[i] = [con[j] for j in seq_vector[i][NumL] for con in convert]
+    end
+    return Matrix{Float64}(vcat(transpose.(test_vector)...))
+end
+
 """
     view_sequence(fasta_loc::String, amino_loc::Int=1;
                   fontsize::Int=9,
