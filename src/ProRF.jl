@@ -309,7 +309,7 @@ function parallel_predict(regr::RandomForestRegressor, L::Vector{String}, seq_ve
     end
 
     NumL = get_amino_loc(L)
-    test_vector = Array{Float64}(undef, length(seq_vector))
+    test_vector = Array{Vector{Float64}}(undef, length(seq_vector))
     Threads.@threads for i in eachindex(seq_vector)
         test_vector[i] = [con[j] for j in seq_vector[i][NumL] for con in convert]
     end
