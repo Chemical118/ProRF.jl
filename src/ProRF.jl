@@ -309,9 +309,9 @@ function parallel_predict(regr::RandomForestRegressor, L::Vector{String}, seq_ve
     end
 
     NumL = get_amino_loc(L)
-    test_vector = Array{Vector{Float64}}(undef, length(seq_vector))
-    Threads.@threads for i in eachindex(seq_vector)
-        test_vector[i] = [con[j] for j in seq_vector[i][NumL] for con in convert]
+    test_vector = Vector{Vector{Float64}}()
+    @views for seq in seq_vector
+        push!(test_vector, [con[j] for j in seq[NumL]] for con in convert)
     end
     return DecisionTree.apply_forest(regr.ensemble, Matrix{Float64}(vcat(transpose.(test_vector)...)), use_multithreading=true)
 end
