@@ -316,7 +316,7 @@ function parallel_predict(regr::RandomForestRegressor, L::Vector{String}, seq_ve
     return DecisionTree.apply_forest(regr.ensemble, Matrix{Float64}(vcat(transpose.(test_vector)...)), use_multithreading=true)
 end
 
-function _parallel_transform(L::Vector{String}, seq_vector::Vector{String}; convert::Union{String, Vector{String}, T, Vector{T}}="all") where T <: Dict{Char}
+function _parallel_transform(seq_vector::Vector{String}; convert::Union{String, Vector{String}, T, Vector{T}}="all") where T <: Dict{Char}
     if convert isa String || convert isa Vector{String}
         convert_dict = Dict{String, Dict{Char, Float64}}("vol" => ProRF.volume, "pI" => ProRF.pI, "hyd" => ProRF.hydrophobicity)
         if convert isa String
@@ -339,10 +339,9 @@ function _parallel_transform(L::Vector{String}, seq_vector::Vector{String}; conv
         convert = _convert_dict(convert)
     end
 
-    NumL = get_amino_loc(L)
     test_vector = Array{Vector{Float64}}(undef, length(seq_vector))
     Threads.@threads for i in eachindex(seq_vector)
-        test_vector[i] = [con[j] for j in seq_vector[i][NumL] for con in convert]
+        test_vector[i] = [con[j] for j in seq_vector[i] for con in convert]
     end
     return Matrix{Float64}(vcat(transpose.(test_vector)...))
 end
