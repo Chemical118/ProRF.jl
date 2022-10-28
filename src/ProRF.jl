@@ -241,12 +241,12 @@ end
 
 """
     test_nrmse(regr::RandomForestRegressor, X::Matrix{Float64}, Y::Vector{Float64},
-               data_state::UInt64;
+               data_state::Integer;
                test_size::Float64=0.3, test_mode::Bool=true)
 
 Compute test or train set normalized root mean square error with regression model, `X`, `Y` data and seed.
 """
-function test_nrmse(regr::RandomForestRegressor, X::Matrix{Float64}, Y::Vector{Float64}, data_state::UInt64; test_size::Float64=0.3, test_mode::Bool=true)
+function test_nrmse(regr::RandomForestRegressor, X::Matrix{Float64}, Y::Vector{Float64}, data_state::Integer; test_size::Float64=0.3, test_mode::Bool=true)
     n = length(Y)
     idx = shuffle(MersenneTwister(data_state), 1:n)
     ed_idx = test_mode ? view(idx, 1:floor(Int, test_size*n)) : view(idx, (floor(Int, test_size*n)+1):n)
@@ -378,7 +378,7 @@ end
 """
     train_test_split(X::Matrix{Float64}, Y::Vector{Float64};
                      test_size::Float64=0.3, 
-                     data_state::UInt64=@seed)
+                     data_state::Integer=@seed)
 
 # Examples
 ```julia-repl
@@ -391,9 +391,9 @@ Split `X`, `Y` data to train, test set.
 - `X::Matrix{Float64}` : `X` data.
 - `Y::Vector{Float64}` : `Y` data.
 - `test_size::Float64` : size of test set.
-- `data_state::UInt64` : seed used to split data.
+- `data_state::Integer` : seed used to split data.
 """
-function train_test_split(X::Matrix{Float64}, Y::Vector{Float64}; test_size::Float64=0.3, data_state::UInt64=@seed)
+function train_test_split(X::Matrix{Float64}, Y::Vector{Float64}; test_size::Float64=0.3, data_state::Integer=@seed)
     # https://discourse.julialang.org/t/simple-tool-for-train-test-split/473/3
     n = length(Y)
     idx = shuffle(MersenneTwister(data_state), 1:n)
@@ -915,9 +915,9 @@ end
                        max_depth::Int=-1,
                        min_samples_leaf::Int=1,
                        min_samples_split::Int=2,
-                       data_state::UInt64=@seed,
-                       learn_state::UInt64=@seed,
-                       imp_state::UInt64=@seed)
+                       data_state::Integer=@seed,
+                       learn_state::Integer=@seed,
+                       imp_state::Integer=@seed)
 
 # Examples
 ```julia-repl
@@ -946,14 +946,14 @@ Caculate regression model and feature importance, then draw random forest result
 - `max_depth::Int` : maximum depth of the tree.
 - `min_samples_leaf::Int` : minimum number of samples required to be at a leaf node.
 - `min_samples_split::Int` : minimum number of samples required to split an internal node.
-- `data_state::UInt64` : seed used to split data.
-- `learn_state::UInt64` : seed used to caculate a regression model.
-- `imp_state::UInt64` : seed used to caculate a feature importance.
+- `data_state::Integer` : seed used to split data.
+- `learn_state::Integer` : seed used to caculate a regression model.
+- `imp_state::Integer` : seed used to caculate a feature importance.
 """
 function get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{String}, feat::Int, tree::Int;
     val_mode::Bool=false, test_size::Float64=0.3, memory_usage::Real=4.0, nbin::Int=200, show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing, imp_iter::Int=60,
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
-    data_state::UInt64=@seed, learn_state::UInt64=@seed, imp_state::UInt64=@seed)
+    data_state::Integer=@seed, learn_state::Integer=@seed, imp_state::Integer=@seed)
     
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
     regr = _randomforestregressor(feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
@@ -978,8 +978,8 @@ end
              max_depth::Int=-1,
              min_samples_leaf::Int=1,
              min_samples_split::Int=2,
-             data_state::UInt64=@seed, 
-             learn_state::UInt64=@seed)
+             data_state::Integer=@seed, 
+             learn_state::Integer=@seed)
 
 # Examples
 ```julia-repl
@@ -999,13 +999,13 @@ Caculate normalized root mean square error, then draw random forest result.
 - `max_depth::Int` : maximum depth of the tree.
 - `min_samples_leaf::Int` : minimum number of samples required to be at a leaf node.
 - `min_samples_split::Int` : minimum number of samples required to split an internal node.
-- `data_state::UInt64` : seed used to split data.
-- `learn_state::UInt64` : seed used to caculate a regression model.
+- `data_state::Integer` : seed used to split data.
+- `learn_state::Integer` : seed used to caculate a regression model.
 """
 function rf_nrmse(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
     val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200,
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
-    data_state::UInt64=@seed, learn_state::UInt64=@seed)
+    data_state::Integer=@seed, learn_state::Integer=@seed)
 
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
     regr = _randomforestregressor(feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
@@ -1025,8 +1025,8 @@ end
              max_depth::Int=-1,
              min_samples_leaf::Int=1,
              min_samples_split::Int=2,
-             data_state::UInt64=@seed, 
-             learn_state::UInt64=@seed)
+             data_state::Integer=@seed, 
+             learn_state::Integer=@seed)
 
 # Examples
 ```julia-repl
@@ -1046,13 +1046,13 @@ Caculate regression model, then draw random forest result.
 - `max_depth::Int` : maximum depth of the tree.
 - `min_samples_leaf::Int` : minimum number of samples required to be at a leaf node.
 - `min_samples_split::Int` : minimum number of samples required to split an internal node.
-- `data_state::UInt64` : seed used to split data.
-- `learn_state::UInt64` : seed used to caculate a regression model.
+- `data_state::Integer` : seed used to split data.
+- `learn_state::Integer` : seed used to caculate a regression model.
 """
 function rf_model(X::Matrix{Float64}, Y::Vector{Float64}, feat::Int, tree::Int;
     val_mode::Bool=false, test_size::Float64=0.3, nbin::Int=200,
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
-    data_state::UInt64=@seed, learn_state::UInt64=@seed)
+    data_state::Integer=@seed, learn_state::Integer=@seed)
 
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
     regr = _randomforestregressor(feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
@@ -1076,12 +1076,12 @@ end
 
 """
     view_result(regr::RandomForestRegressor, X::Matrix{Float64}, Y::Vector{Float64},
-                data_state::UInt64;
+                data_state::Integer;
                 test_size::Float64=0.3, nbin::Int=200, test_mode::Bool=true)
 
 Draw test or train set random forest result and return normalized root mean square error with regression model, `X`, `Y` data and seed.
 """
-function view_result(regr::RandomForestRegressor, X::Matrix{Float64}, Y::Vector{Float64}, data_state::UInt64; test_size::Float64=0.3, nbin::Int=200, test_mode::Bool=true)
+function view_result(regr::RandomForestRegressor, X::Matrix{Float64}, Y::Vector{Float64}, data_state::Integer; test_size::Float64=0.3, nbin::Int=200, test_mode::Bool=true)
     n = length(Y)
     idx = shuffle(MersenneTwister(data_state), 1:n)
     ed_idx = test_mode ? view(idx, 1:floor(Int, test_size*n)) : view(idx, (floor(Int, test_size*n)+1):n)
@@ -1098,12 +1098,12 @@ function view_result(pre::Vector{Float64}, tru::Vector{Float64}; nbin::Int=200)
 end
 
 """
-    view_result(pre::Vector{Float64}, tru::Vector{Float64}, data_state::UInt64;
+    view_result(pre::Vector{Float64}, tru::Vector{Float64}, data_state::Integer;
                 test_size::Float64=0.3, nbin::Int=200, test_mode::Bool=true)
 
 Draw test or train set random forest result and return normalized root mean square error with predict, true value and seed.
 """
-function view_result(pre::Vector{Float64}, tru::Vector{Float64}, data_state::UInt64; test_size::Float64=0.3, nbin::Int=200, test_mode::Bool=true)
+function view_result(pre::Vector{Float64}, tru::Vector{Float64}, data_state::Integer; test_size::Float64=0.3, nbin::Int=200, test_mode::Bool=true)
     n = length(pre)
     idx = shuffle(MersenneTwister(data_state), 1:n)
     ed_idx = test_mode ? view(idx, 1:floor(Int, test_size*n)) : view(idx, (floor(Int, test_size*n)+1):n)
@@ -1177,7 +1177,7 @@ end
                   show_number::Int=20, 
                   index::Union{Nothing, Vector{String}}=nothing,
                   imp_iter::Int=60,
-                  imp_state::UInt64=@seed)
+                  imp_state::Integer=@seed)
     
 # Examples
 ```julia-repl
@@ -1196,10 +1196,10 @@ Caculate feature importance for a target model, then draw feature importance lis
 - `show_number::Int` : number of locations to show importance.
 - `index::Union{Nothing, Vector{String}}` : index of convert dictionary.
 - `imp_iter::Int` : number of times to repeat to caculate a feature importance.
-- `imp_state::UInt64` : seed used to caculate a feature importance.
+- `imp_state::Integer` : seed used to caculate a feature importance.
 """
 function rf_importance(R::AbstractRF, regr::RandomForestRegressor, X::Matrix{Float64}, L::Vector{String};
-    val_mode::Bool=false, memory_usage::Real=4.0, show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing, imp_iter::Int=60, imp_state::UInt64=@seed)
+    val_mode::Bool=false, memory_usage::Real=4.0, show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing, imp_iter::Int=60, imp_state::Integer=@seed)
     memory_estimate = *(size(X)...) / 35000.0
     if memory_estimate > memory_usage
         n = size(X, 1)
@@ -1211,7 +1211,7 @@ function rf_importance(R::AbstractRF, regr::RandomForestRegressor, X::Matrix{Flo
 end
 
 function _rf_importance(regr::RandomForestRegressor, dx::DataFrame, iter::Int=60; 
-                        seed::UInt64=@seed, show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing, val_mode::Bool=false)
+                        seed::Integer=@seed, show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing, val_mode::Bool=false)
     data_shap = ShapML.shap(explain = dx,
                     model = regr,
                     predict_function = _rf_dfpredict,
@@ -1331,9 +1331,9 @@ end
                             max_depth::Int=-1,
                             min_samples_leaf::Int=1,
                             min_samples_split::Int=2,
-                            data_state_seed::UInt64=@seed,
-                            learn_state_seed::UInt64=@seed,
-                            imp_state::UInt64=@seed)
+                            data_state_seed::Integer=@seed,
+                            learn_state_seed::Integer=@seed,
+                            imp_state::Integer=@seed)
 
 # Examples
 ```julia-repl
@@ -1361,15 +1361,15 @@ Returns the mean and standard deviation of feature importance.
 - `max_depth::Int` : maximum depth of the tree.
 - `min_samples_leaf::Int` : minimum number of samples required to be at a leaf node.
 - `min_samples_split::Int` : minimum number of samples required to split an internal node.
-- `data_state_seed::UInt64` : seed used to generate seed used to split data.
-- `learn_state_seed::UInt64` : seed used to generate seed used to caculate a regression model.
-- `imp_state::UInt64` : seed used to caculate a feature importance.
+- `data_state_seed::Integer` : seed used to generate seed used to split data.
+- `learn_state_seed::Integer` : seed used to generate seed used to caculate a regression model.
+- `imp_state::Integer` : seed used to caculate a feature importance.
 """
 function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Float64}, L::Vector{String}, feat::Int, tree::Int, data_iter::Int, learn_iter::Int;
     val_mode::Bool=false, test_size::Float64=0.3, memory_usage::Real=4.0, show_number::Int=20,
     index::Union{Nothing, Vector{String}}=nothing, imp_iter::Int=60,
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
-    data_state_seed::UInt64=@seed, learn_state_seed::UInt64=@seed, imp_state::UInt64=@seed)
+    data_state_seed::Integer=@seed, learn_state_seed::Integer=@seed, imp_state::Integer=@seed)
 
     iter = learn_iter * data_iter
     f = Array{Float64}(undef, (length(L), iter))
@@ -1410,7 +1410,7 @@ function iter_get_reg_importance(R::AbstractRF, X::Matrix{Float64}, Y::Vector{Fl
     return mf, sf
 end
 
-function _iter_get_reg_importance(X::Matrix{Float64}, x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, loc::Vector{String}, feat::Int, tree::Int, imp_iter::Int, max_depth::Int, min_samples_leaf::Int, min_samples_split::Int, imp_state::UInt64, learn_state::UInt64, edit_idx::Vector{Int})
+function _iter_get_reg_importance(X::Matrix{Float64}, x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, loc::Vector{String}, feat::Int, tree::Int, imp_iter::Int, max_depth::Int, min_samples_leaf::Int, min_samples_split::Int, imp_state::Integer, learn_state::Integer, edit_idx::Vector{Int})
     regr = _randomforestregressor(feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
     DecisionTree.fit!(regr, x_train, y_train)
     return _rf_importance(regr, DataFrame(X[edit_idx, :], loc), imp_iter, seed=imp_state, val_mode=true), test_nrmse(regr, x_test, y_test)
@@ -1470,8 +1470,8 @@ end
                   max_depth::Int=-1,
                   min_samples_leaf::Int=1,
                   min_samples_split::Int=2,
-                  data_state::UInt64=@seed,
-                  learn_state::UInt64=@seed)
+                  data_state::Integer=@seed,
+                  learn_state::Integer=@seed)
 
 # Examples
 ```julia-repl
@@ -1488,13 +1488,13 @@ Calculate [`nrmse`](@ref) value for each `nfeat`, `ntree` condition, then draw [
 - `max_depth::Int` : maximum depth of the tree.
 - `min_samples_leaf::Int` : minimum number of samples required to be at a leaf node.
 - `min_samples_split::Int` : minimum number of samples required to split an internal node.
-- `data_state::UInt64` : seed used to split data.
-- `learn_state::UInt64` : seed used to caculate a regression model.
+- `data_state::Integer` : seed used to split data.
+- `learn_state::Integer` : seed used to caculate a regression model.
 """
 function get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64};
     val_mode::Bool=false, test_size::Float64=0.3,
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
-    data_state::UInt64=@seed, learn_state::UInt64=@seed)
+    data_state::Integer=@seed, learn_state::Integer=@seed)
     x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, data_state=data_state)
     z = Array{Float64}(undef, (length(RI.nfeat), length(RI.ntree)))
     task = [(i[1], j[1], i[2], j[2]) for i in enumerate(RI.nfeat), j in enumerate(RI.ntree)]
@@ -1509,7 +1509,7 @@ function get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64};
     return z
 end
 
-function _get_reg_value(x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, feat::Int, tree::Int, max_depth::Int, min_samples_leaf::Int, min_samples_split::Int, learn_state::UInt64)
+function _get_reg_value(x_train::Matrix{Float64}, x_test::Matrix{Float64}, y_train::Vector{Float64}, y_test::Vector{Float64}, feat::Int, tree::Int, max_depth::Int, min_samples_leaf::Int, min_samples_split::Int, learn_state::Integer)
     regr = _randomforestregressor(feat, tree, max_depth, min_samples_leaf, min_samples_split, learn_state)
     DecisionTree.fit!(regr, x_train, y_train)
     return test_nrmse(regr, x_test, y_test)
@@ -1582,8 +1582,8 @@ end
                        max_depth::Int=-1,
                        min_samples_leaf::Int=1,
                        min_samples_split::Int=2,
-                       learn_state::UInt64=@seed,
-                       data_state_seed::UInt64=@seed)
+                       learn_state::Integer=@seed,
+                       data_state_seed::Integer=@seed)
 
 # Examples
 ```julia-repl
@@ -1602,12 +1602,12 @@ Returns the mean and standard deviation of [`nrmse`](@ref) value.
 - `max_depth::Int` : maximum depth of the tree.
 - `min_samples_leaf::Int` : minimum number of samples required to be at a leaf node.
 - `min_samples_split::Int` : minimum number of samples required to split an internal node.
-- `learn_state::UInt64` : seed used to caculate a regression model.
-- `data_state_seed::UInt64` : seed used to generate seed used to split data.
+- `learn_state::Integer` : seed used to caculate a regression model.
+- `data_state_seed::Integer` : seed used to generate seed used to split data.
 """
 function iter_get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float64}, iter::Int;
     max_depth::Int=-1, min_samples_leaf::Int=1, min_samples_split::Int=2,
-    val_mode::Bool=false, test_size::Float64=0.3, learn_state::UInt64=@seed, data_state_seed::UInt64=@seed)
+    val_mode::Bool=false, test_size::Float64=0.3, learn_state::Integer=@seed, data_state_seed::Integer=@seed)
     z = Array{Float64}(undef, (length(RI.nfeat), length(RI.ntree), iter))
     data_state_vector = Vector{UInt64}(rand(MersenneTwister(data_state_seed), UInt64, iter))
     for i = 1:iter
@@ -1631,7 +1631,7 @@ function iter_get_reg_value(RI::AbstractRFI, X::Matrix{Float64}, Y::Vector{Float
     return vz, sz
 end
 
-function _randomforestregressor(feat::Int, tree::Int, max_depth::Int, min_samples_leaf::Int, min_samples_split::Int, learn_state::UInt64)
+function _randomforestregressor(feat::Int, tree::Int, max_depth::Int, min_samples_leaf::Int, min_samples_split::Int, learn_state::Integer)
     return RandomForestRegressor(n_trees=tree, n_subfeatures=feat, max_depth=max_depth, min_samples_leaf=min_samples_leaf, min_samples_split=min_samples_split, rng=MersenneTwister(learn_state), impurity_importance=false)
 end
 
