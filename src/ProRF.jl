@@ -1749,4 +1749,10 @@ Convert dictionary about hydrophobicity of amino acid.
 hydrophobicity = Dict{Char, Float64}('C' => 137, 'I' => 106, 'V' => 108, 'L' => 103, 'F' => 108, 'M' => 73, 'W' => 69, 'A' => 51, 'T' => -3, 'G' => -13, 'Y' => 11, 'S' => -26, 'H' => -55, 'P' => -79, 'N' => -84, 'D' => -78, 'E' => -115, 'Q' => -128, 'R' => -144, 'K' => -205)
 _norm_dict!(hydrophobicity)
 
+# GUI function
+function _split_index(n::Int, data_state::Integer, test_mode::Bool)
+    idx = shuffle(MersenneTwister(data_state), 1:n)
+    ed_idx = test_mode ? view(idx, 1:floor(Int, test_size*n)) : view(idx, (floor(Int, test_size*n)+1):n)
+    return ed_idx
+end
 end # module end
