@@ -1750,9 +1750,16 @@ hydrophobicity = Dict{Char, Float64}('C' => 137, 'I' => 106, 'V' => 108, 'L' => 
 _norm_dict!(hydrophobicity)
 
 # GUI function
-function _split_index(n::Int, data_state::Integer, test_size::Float64, test_mode::Bool)
+
+function gui_split_index(n::Int, data_state::Integer, test_size::Float64, test_mode::Bool)
     idx = shuffle(MersenneTwister(data_state), 1:n)
     ed_idx = test_mode ? view(idx, 1:floor(Int, test_size*n)) : view(idx, (floor(Int, test_size*n)+1):n)
     return ed_idx
+end
+
+function gui_color_index(predict_test::Vector{Float64}, y_test::Vector{Float64}, nbin::Int)
+    ke = AverageShiftedHistograms.Kernels.gaussian
+    kde = ash(y_test, predict_test, nbin=nbin, kernelx=ke, kernely=ke)
+    return Vector{Float64}([AverageShiftedHistograms.pdf(kde, tru, val) for (tru, val) in zip(y_test, predict_test)])
 end
 end # module end
