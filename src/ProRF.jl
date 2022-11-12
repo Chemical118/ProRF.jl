@@ -159,7 +159,7 @@ end
 # Normal function
 
 function _save_loc(arg::String)
-    save_loc = join(split(replace(@__FILE__, "\\" => "/"), '/')[1:end-1], '/') * "/$arg.png"
+    save_loc = replace(pwd(), "\\" => "/") * "/$arg.png"
     
     if isfile(save_loc)
         save_filename, save_fileext = splitext(save_loc)
