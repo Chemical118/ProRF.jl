@@ -147,18 +147,31 @@ end
 """
 When [`_julia_interactive`](@ref) is on, execute `display(gcf())` or [`_julia_interactive`](@ref) is off, execute `show()` and wait until the user inputs enter.
 """
-macro show_pyplot()
-    return :(if _julia_interactive == true
+macro show_pyplot(arg)
+    return :(if _julia_interactive
                  display(gcf())
              else
-                 show()
-                 print("Hit <enter> to continue")
-                 readline() 
+                 savefig(_save_loc($arg), dpi=300, bbox_inches="tight")
              end;
              close("all"))
 end
 
 # Normal function
+
+function _save_loc(arg::String)
+    save_loc = join(split(replace(@__FILE__, "\\" => "/"), '/')[1:end-1], '/') * "/$arg.png"
+    
+    if isfile(save_loc)
+        save_filename, save_fileext = splitext(save_loc)
+        ind = 1
+        while isfile(@sprintf "%s (%d)%s" save_filename ind save_fileext)
+            ind += 1
+        end
+        return @sprintf "%s (%d)%s" save_filename ind save_fileext
+    else
+        return save_loc
+    end
+end
 
 function _convert_dict(convert::Union{T, Vector{T}}) where T <: Dict{Char}
     if convert isa Dict{Char}
@@ -211,14 +224,14 @@ function _view_mutation(fasta_loc::String)
     ylabel("Number of total amino location")
     PyPlot.title("Mutation location stacked graph")
     xticks(collect(1:last_ind), [i % 5 == 1 ? i : "" for i in 1:last_ind])
-    @show_pyplot
+    @show_pyplot "MutStack"
     hist(loc_hist_vector, bins=20)
     xlim(1, last_ind - 1)
     xticks(collect(1:last_ind - 1), [i % 10 == 1 ? i : "" for i in 1:last_ind - 1])
     xlabel("Number of mutation")
     ylabel("Number of amino location")
     PyPlot.title("Mutation location histogram")
-    @show_pyplot
+    @show_pyplot "MutHist"
 end
 
 """
@@ -1135,7 +1148,7 @@ function _view_result(regr::RandomForestRegressor, x_test::Matrix{Float64}, y_te
     ylim(-max(0, -ylim()[1]), ylim()[2])
     annotate((@sprintf "NRMSE : %.4f" nrmse_val), (([0.97  0.03] * collect(xlim()))[1] , ([0.05 0.95] * collect(ylim()))[1]))
     plot([-1000, 1000], [-1000, 1000], color="black")
-    @show_pyplot
+    @show_pyplot "RegResult"
     @printf "NRMSE : %.6f\n" nrmse_val
     return nrmse_val
 end
@@ -1164,7 +1177,7 @@ function _view_result(predict_test::Vector{Float64}, y_test::Vector{Float64}, nb
     ylim(-max(0, -ylim()[1]), ylim()[2])
     annotate((@sprintf "NRMSE : %.4f" nrmse_val), (([0.97  0.03] * collect(xlim()))[1] , ([0.05 0.95] * collect(ylim()))[1]))
     plot([-1000, 1000], [-1000, 1000], color="black")
-    @show_pyplot
+    @show_pyplot "RegResult"
     @printf "NRMSE : %.6f\n" nrmse_val
     return nrmse_val
 end
@@ -1254,7 +1267,7 @@ function _draw_importance(L::Vector{String}, F::Vector{Float64}, show_number::In
     PyPlot.xticks(1:show_number, labels=string.(NumL[1:show_number]), rotation=45)
     xlabel("AA index")
     ylabel("Feature Importance")
-    @show_pyplot
+    @show_pyplot "FeatDictImp"
 end
 
 function _view_importance(F::Vector{Float64}, L::Vector{String}, baseline::Float64; show_number::Int=20, index::Union{Nothing, Vector{String}}=nothing)
@@ -1267,7 +1280,7 @@ function _view_importance(F::Vector{Float64}, L::Vector{String}, baseline::Float
     xlabel(@sprintf "|Shapley effect| (baseline = %.2f)" baseline)
     ylabel("Amino acid Location")
     PyPlot.title("Feature Importance - Mean Absolute Shapley Value")
-    @show_pyplot
+    @show_pyplot "FeatBaseImp"
 
     try
         if length(get_amino_loc(L)) < length(L)
@@ -1312,7 +1325,7 @@ function _view_importance(F::Vector{Float64}, L::Vector{String}; show_number::In
     xlabel("Feature Importance")
     ylabel("Amino acid Location")
     PyPlot.title("Relative Mean Absolute Shapley Value")
-    @show_pyplot
+    @show_pyplot "FeatImp"
 
     try
         if length(get_amino_loc(L)) < length(L)
@@ -1453,7 +1466,7 @@ function _iter_view_importance(MF::Vector{Float64}, SF::Vector{Float64}, L::Vect
     xlabel("Feature Importance")
     ylabel("Amino acid Location")
     PyPlot.title("Relative Mean Absolute Shapley Value")
-    @show_pyplot
+    @show_pyplot "FeatImp"
 
     try
         if length(get_amino_loc(L)) < length(L)
@@ -1573,7 +1586,7 @@ function view_reg3d(RI::AbstractRFI, Z::Matrix{Float64}; title::Union{String, No
     surf = plot_surface(nfeat_list, ntree_list, Z', cmap=ColorMap("coolwarm"), linewidth=0)
     colorbar(surf, shrink=0.7, aspect=15, pad=0.1, ax=ax)
     PyPlot.title(title)
-    @show_pyplot
+    @show_pyplot "ArgResult"
 end
 
 """

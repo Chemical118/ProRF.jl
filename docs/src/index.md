@@ -18,7 +18,7 @@ Pkg.add(url="https://github.com/Chemical118/ProRF.jl")
     For more information, read Multi-Threading [documentaion](https://docs.julialang.org/en/v1/manual/multi-threading/).
 
 !!! note
-    `ProRF` recommends interactive mode like `IJulia`. If you want to run in non-interactive mode, execute below code to see graphs. However, `ProRF` doesn't guarantee that you can see graphs.
+    `ProRF` recommends interactive mode like `IJulia`. If you want to run in non-interactive mode, execute below code to see graphs. Then, `ProRF` automatically saves the graph to a high-resolution `.png` file.
     ```julia
     using ProRF
     julia_isinteractive(false)
@@ -69,7 +69,7 @@ myDict = Dict('A' => 89, 'R' => 174, 'N' => 132, 'D' => 133, 'C' => 121, 'Q' => 
 'F' => 165, 'P' => 115, 'S' => 105, 'T' => 119, 'W' => 204, 'Y' => 181, 'V' => 117)
 
 R = RF("Data/jealgpdata.fasta", "Data/data.xlsx")
-X, Y, L = get_data(R, 2, 'D', convert=myDict)
+X, Y, L = get_data(R, 'D', convert=myDict)
 
 M = rf_model(X, Y, N_Feature, N_Tree)
 @printf "Total NRMSE : %.6f\n" test_nrmse(M, X, Y)
