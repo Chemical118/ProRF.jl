@@ -18,7 +18,7 @@ Pkg.add(url="https://github.com/Chemical118/ProRF.jl")
     For more information, read Multi-Threading [documentaion](https://docs.julialang.org/en/v1/manual/multi-threading/).
 
 !!! note
-    `ProRF` recommends interactive mode like `IJulia`. If you want to run in non-interactive mode, execute below code to see graphs. Then, `ProRF` automatically saves a high-resolution `.png` file converted from graphs at current working directory which is defined by `pwd` function.
+    `ProRF` recommends interactive mode like `IJulia`. If you want to run in non-interactive mode, execute below code to see graphs. Then, `ProRF` automatically saves graphs at current working directory which is defined by `pwd` function.
     ```julia
     using ProRF
     julia_isinteractive(false)

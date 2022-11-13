@@ -333,7 +333,7 @@ end
     view_sequence(fasta_loc::String, amino_loc::Int=1;
                   fontsize::Int=9,
                   seq_width::Int=800,
-                  save::Bool=false)
+                  save::Bool=!_julia_interactive)
 
 Display `.fasta` file sequence using `PyCall`.
 
@@ -344,9 +344,9 @@ Made it by referring to [bokeh sequence aligner visualization program](https://d
 - `amino_loc::Int` : start index for `.fasta` file (when value is not determined, set to 1).
 - `fontsize::Int` : font size of sequence.
 - `seq_width::Int` : gap width between sequences.
-- `save::Bool` : save `.html` viewer.
+- `save::Bool` : save `.html` viewer when [`_julia_interactive`](@ref) is off.
 """
-function view_sequence(fasta_loc::String, amino_loc::Int=1; fontsize::Int=9, seq_width::Int=800, save::Bool=false)
+function view_sequence(fasta_loc::String, amino_loc::Int=1; fontsize::Int=9, seq_width::Int=800, save::Bool=!_julia_interactive)
     seq_vector = Vector{String}()
     id_vector = Vector{String}()
 
@@ -361,7 +361,7 @@ end
     view_sequence(R::AbstractRF;
                   fontsize::Int=9,
                   seq_width::Int=800,
-                  save::Bool=false)
+                  save::Bool=!_julia_interactive)
 
 Display `.fasta` file sequence exists at a location in the [`AbstractRF`](@ref) object using `PyCall`.
 
@@ -371,9 +371,9 @@ Made it by referring to [bokeh sequence aligner visualization program](https://d
 - `R::AbstractRF` : for both [`RF`](@ref) and [`RFI`](@ref).
 - `fontsize::Int` : font size of sequence.
 - `seq_width::Int` : gap width between sequences.
-- `save::Bool` : save `.html` viewer.
+- `save::Bool` : save `.html` viewer when [`_julia_interactive`](@ref) is off.
 """
-function view_sequence(R::AbstractRF; fontsize::Int=9, seq_width::Int=800, save::Bool=false)
+function view_sequence(R::AbstractRF; fontsize::Int=9, seq_width::Int=800, save::Bool=!_julia_interactive)
     seq_vector = Vector{String}()
     id_vector = Vector{String}()
 
@@ -384,8 +384,8 @@ function view_sequence(R::AbstractRF; fontsize::Int=9, seq_width::Int=800, save:
     _view_sequence(R.fasta_loc, seq_vector, id_vector, R.amino_loc, fontsize, seq_width, save_view=save)
 end
 
-function _view_sequence(fasta_loc::String, seq_vector::Vector{String}, id_vector::Vector{String}, amino_loc::Int=0, fontsize::Int=9, plot_width::Int=800; save_view::Bool=true)
-    py"_view_sequence"(fasta_loc, seq_vector, id_vector, amino_loc - 1, fontsize=string(fontsize) * "pt", plot_width=plot_width, save_view=save_view)
+function _view_sequence(fasta_loc::String, seq_vector::Vector{String}, id_vector::Vector{String}, amino_loc::Int=0, fontsize::Int=9, plot_width::Int=800; save_view::Bool=true, view::Bool=true)
+    py"_view_sequence"(fasta_loc, seq_vector, id_vector, amino_loc - 1, fontsize=string(fontsize) * "pt", plot_width=plot_width, save_view=save_view, view=view)
 end
 
 """
@@ -478,7 +478,7 @@ end
 
 function __init__()
     py"""
-    def _view_sequence(floc, seqs, ids, loc, fontsize="9pt", plot_width=800, val_mode=False, save_view=True):
+    def _view_sequence(floc, seqs, ids, loc, fontsize="9pt", plot_width=800, val_mode=False, save_view=True, view=True):
         # Bokeh sequence alignment view
         # https://dmnfarrell.github.io/bioinformatics/bokeh-sequence-aligner
         # Edit by Chemical118
@@ -554,7 +554,8 @@ function __init__()
         if save_view:
             output_file('.'.join(floc.split('.')[:-1]) + '.html')
         
-        show(p)
+        if view:
+            show(p)
     """
 end
 
@@ -563,7 +564,8 @@ end
 """
     data_preprocess_index(in_fasta_loc::String;
                           target_rate::Float64=0.3,
-                          val_mode::Bool=false)
+                          val_mode::Bool=false,
+                          save::Bool=!_julia_interactive)
 
 # Examples
 ```julia-repl
@@ -579,8 +581,9 @@ Return front, last index whose gap ratio is smaller than `target_rate` at each e
 - `in_fasta_loc::String` : location of `.fasta` file
 - `target_rate::Float64` : baseline for gap ratio
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
+- `save::Bool` : save `.html` viewer when [`_julia_interactive`](@ref) is off.
 """
-function data_preprocess_index(in_fasta_loc::String; target_rate::Float64=0.3, val_mode::Bool=false)
+function data_preprocess_index(in_fasta_loc::String; target_rate::Float64=0.3, val_mode::Bool=false, save::Bool=!_julia_interactive)
     data_len, loc_dict_vector, _ = _location_data(in_fasta_loc)
 
     seq_vector = Vector{String}()
@@ -599,12 +602,10 @@ function data_preprocess_index(in_fasta_loc::String; target_rate::Float64=0.3, v
     
     seq_vector = [seq[front_ind:last_ind] for seq in seq_vector]
 
-    if val_mode == false
-        if seq_len ≥ 100
-            _view_sequence(in_fasta_loc, [seq[1:45] * '.' ^ 9 * seq[end-44:end] for seq in seq_vector], id_vector, save_view=false)
-        else
-            _view_sequence(in_fasta_loc, seq_vector, id_vector, save_view=false)
-        end
+    if seq_len ≥ 100
+        _view_sequence(in_fasta_loc, [seq[1:45] * '.' ^ 9 * seq[end-44:end] for seq in seq_vector], id_vector, save_view=save, view=!val_mode)
+    else
+        _view_sequence(in_fasta_loc, seq_vector, id_vector, save_view=save, view=!val_mode)
     end
 
     return front_ind, last_ind
@@ -615,7 +616,8 @@ end
                          in_fasta_loc::String,
                          newick_loc::String,
                          out_fasta_loc::String;
-                         val_mode::Bool=false)
+                         val_mode::Bool=false,
+                         save::Bool=!_julia_interactive)
 
 # Examples
 ```julia-repl
@@ -645,8 +647,9 @@ Make sure that id of `.fasta` file same as id of `.nwk` file.
 - `newick_loc::String` : location of `.fasta` file.
 - `out_fasta_loc::String` : location of output `.fasta` file.
 - `val_mode::Bool` : when `val_mode` is true, function don't display anything.
+- `save::Bool` : save `.html` viewer when [`_julia_interactive`](@ref) is off.
 """
-function data_preprocess_fill(front_ind::Int, last_ind::Int, in_fasta_loc::String, newick_loc::String, out_fasta_loc::String; val_mode::Bool=false)
+function data_preprocess_fill(front_ind::Int, last_ind::Int, in_fasta_loc::String, newick_loc::String, out_fasta_loc::String; val_mode::Bool=false, save::Bool=!_julia_interactive)
     dis_matrix = distances(open(parsenewick, newick_loc))
     seq_vector = Vector{String}()
     id_vector = Vector{String}()
@@ -713,9 +716,7 @@ function data_preprocess_fill(front_ind::Int, last_ind::Int, in_fasta_loc::Strin
         end
     end
 
-    if val_mode == false
-        _view_sequence(out_fasta_loc, edit_seq_vector, id_vector, save_view=false)
-    end
+    _view_sequence(out_fasta_loc, edit_seq_vector, id_vector, save_view=save, view=!val_mode)
 end
 
 # RF / RFI function
