@@ -47,14 +47,14 @@ view_sequence("Data/jealgpdata.fasta", save=true)
 using ProRF, Printf
 
 RI = RFI("Data/jealgpdata.fasta", "Data/data.xlsx", 2:1:10, 100:10:500)
-X, Y, L = get_data(RI, 2, 'D')
+X, Y, L = get_data(RI, 'D')
 
 MeZ, SdZ = iter_get_reg_value(RI, X, Y, 10, val_mode=true)
 
 view_reg3d(RI, MeZ, title="NRMSE value", azim=90, scale=3)
 view_reg3d(RI, SdZ, title="NRMSE SD value", elev=120, scale=3)
 
-N_Feature, N_Tree = get_reg_value_loc(RI, MZ)
+N_Feature, N_Tree = get_reg_value_loc(RI, MeZ)
 @printf "Best Arguments : %d %d\n" N_Feature N_Tree
 ```
 
