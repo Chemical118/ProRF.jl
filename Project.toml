@@ -1,5 +1,6 @@
 name = "ProRF"
 uuid = "e8cad192-777b-4b22-a2eb-37911c993c6b"
+license = "MIT"
 authors = ["Ryu Hyunwoo <wowo0118@korea.ac.kr>"]
 version = "0.1.0"
 
