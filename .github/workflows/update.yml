@@ -1,0 +1,35 @@
+name: Update ghcr.io image
+
+on: [push]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login ghcr.io
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install docker image
+        run: |
+          docker pull julia:latest
+
+      - name: Install ProRF.jl module and requirements
+        run: |
+          docker run -i --name ProRF julia:latest
+          docker container start ProRF
+          docker exec ProRF julia -e 'using Pkg; Pkg.add(url="https://github.com/Chemical118/ProRF.jl"); Pkg.add("Conda"); using Conda; Conda.add("bokeh"); Pkg.rm("Conda")'
+
+      - name: Update image with new docker container
+        run: |
+          docker stop ProRF -t 0
+          docker commit -a "Hyunwoo Ryu" -m "${{ github.event.head_commit.message }} ProRF.jl update" ProRF ghcr.io/chemical118/prorf:latest
+      
+      - name: Push updated image
+        run: docker push ghcr.io/chemical118/prorf:latest
